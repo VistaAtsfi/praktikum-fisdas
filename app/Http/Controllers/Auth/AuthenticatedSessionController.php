@@ -3,57 +3,45 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
-use Laravel\Socialite\Facades\Socialite;
+use Illuminate\View\View;
 
-class GoogleAuthController extends Controller
+class AuthenticatedSessionController extends Controller
 {
-    public function redirect(): RedirectResponse
+    /**
+     * Tampilkan halaman login.
+     */
+    public function create(): View
     {
-        return Socialite::driver('google')->redirect();
+        return view('auth.login');
     }
 
-    public function callback(): RedirectResponse
+    /**
+     * Proses login email dan password.
+     */
+    public function store(LoginRequest $request): RedirectResponse
     {
-        try {
-            $googleUser = Socialite::driver('google')->user();
+        $request->authenticate();
 
-            $user = User::where('google_id', $googleUser->getId())
-                ->orWhere('email', $googleUser->getEmail())
-                ->first();
+        $request->session()->regenerate();
 
-            if ($user) {
-                $user->update([
-                    'google_id' => $user->google_id ?? $googleUser->getId(),
-                    'auth_provider' => $user->auth_provider === 'email' ? 'email_google' : 'google',
-                    'email_verified_at' => $user->email_verified_at ?? now(),
-                ]);
-            } else {
-                $user = User::create([
-                    'name' => 'Pengguna Baru',
-                    'email' => $googleUser->getEmail(),
-                    'email_verified_at' => now(),
-                    'password' => null,
-                    'role' => 'praktikan',
-                    'google_id' => $googleUser->getId(),
-                    'auth_provider' => 'google',
-                    'profile_completed' => false,
-                    'remember_token' => Str::random(60),
-                ]);
-            }
+        return redirect()->intended(route('dashboard', absolute: false));
+    }
 
-            Auth::login($user, true);
+    /**
+     * Proses logout.
+     */
+    public function destroy(Request $request): RedirectResponse
+    {
+        Auth::guard('web')->logout();
 
-            return redirect()->route('dashboard');
-        } catch (\Throwable $e) {
-            return redirect()
-                ->route('login')
-                ->withErrors([
-                    'email' => 'Login Google gagal. Silakan coba lagi.',
-                ]);
-        }
+        $request->session()->invalidate();
+
+        $request->session()->regenerateToken();
+
+        return redirect('/');
     }
 }

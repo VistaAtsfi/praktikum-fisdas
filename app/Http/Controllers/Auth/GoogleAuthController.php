@@ -16,7 +16,14 @@ class GoogleAuthController extends Controller
      */
     public function redirect(): RedirectResponse
     {
-        return Socialite::driver('google')->redirect();
+        /** @var \Laravel\Socialite\Two\AbstractProvider $provider */
+        $provider = Socialite::driver('google');
+
+        return $provider
+            ->with([
+                'prompt' => 'select_account',
+            ])
+            ->redirect();
     }
 
     /**

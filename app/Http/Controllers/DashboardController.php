@@ -16,48 +16,28 @@ class DashboardController extends Controller
             return redirect()->route('login');
         }
 
-        if ($user->role === 'praktikan' && !$user->profile_completed) {
-            return redirect()->route('profile.complete');
-        }
+        if ($user->role === 'praktikan') {
+            if (!$user->profile_completed) {
+                return redirect()->route('profile.complete');
+            }
 
-        if ($user->role === 'koordinator') {
-            return redirect()->route('dashboard.koordinator');
+            return redirect()->route('dashboard.praktikan');
         }
 
         if ($user->role === 'asisten') {
             return redirect()->route('dashboard.asisten');
         }
 
-        return redirect()->route('dashboard.praktikan');
-    }
-
-    public function praktikan()
-    {
-        $user = Auth::user();
-
-        if (!$user) {
-            return redirect()->route('login');
+        if ($user->role === 'koordinator') {
+            return redirect()->route('dashboard.koordinator');
         }
 
-        if (!$user->profile_completed) {
-            return redirect()->route('profile.complete');
-        }
-
-        $praktikan = Praktikan::with(['praktikum', 'kelompok'])
-            ->where('user_id', $user->id)
-            ->latest()
-            ->first();
-
-        return view('dashboard.praktikan', compact('praktikan'));
+        abort(403, 'Role pengguna tidak dikenali.');
     }
 
     public function asisten()
     {
         $user = Auth::user();
-
-        if (!$user) {
-            return redirect()->route('login');
-        }
 
         $asisten = Asisten::with('praktikum')
             ->where('user_id', $user->id)

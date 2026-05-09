@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('moduls', function (Blueprint $table) {
@@ -18,18 +15,19 @@ return new class extends Migration
                 ->constrained('praktikums')
                 ->cascadeOnDelete();
 
-            $table->string('nama_modul');
-            $table->integer('urutan');
+            $table->integer('nomor_modul');
+            $table->string('nama_modul')->nullable();
+            $table->text('deskripsi')->nullable();
 
             $table->timestamps();
 
-            $table->unique(['praktikum_id', 'urutan'], 'unique_modul_praktikum_urutan');
+            $table->unique(
+                ['praktikum_id', 'nomor_modul'],
+                'unique_modul_praktikum'
+            );
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('moduls');
