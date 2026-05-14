@@ -18,7 +18,7 @@
                 </h1>
 
                 <p class="text-blue-100 leading-relaxed max-w-3xl">
-                    Ini adalah halaman beranda praktikan. Di sini Anda dapat melihat informasi kelompok,
+                    Di halaman beranda praktikan ini, Anda dapat melihat informasi kelompok,
                     sesi praktikum, QR Code presensi, ringkasan nilai, dan riwayat kehadiran.
                 </p>
 
@@ -93,9 +93,9 @@
     </section>
 
     <!-- Nilai dan Kehadiran -->
-    <section class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+    <section class="grid grid-cols-1 xl:grid-cols-12 gap-8">
         <!-- Nilai -->
-        <div class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
+        <div class="xl:col-span-4 bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
             <div class="p-6 border-b border-blue-100 flex items-center justify-between">
                 <div>
                     <h3 class="text-2xl font-extrabold text-slate-900">Nilai</h3>
@@ -149,12 +149,13 @@
         </div>
 
         <!-- Kehadiran -->
-        <div class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
+        <div class="xl:col-span-8 bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
             <div class="p-6 border-b border-blue-100 flex items-center justify-between">
                 <div>
                     <h3 class="text-2xl font-extrabold text-slate-900">Kehadiran</h3>
                     <p class="text-slate-500 text-sm">Data presensi berdasarkan sesi praktikum.</p>
                 </div>
+
                 <div class="w-12 h-12 rounded-2xl bg-cyan-100 text-cyan-700 flex items-center justify-center text-2xl">
                     ✅
                 </div>
@@ -164,31 +165,53 @@
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="bg-slate-50">
-                            <th class="text-left p-3 rounded-l-xl">Pertemuan</th>
-                            <th class="text-left p-3">Modul</th>
-                            <th class="text-right p-3 rounded-r-xl">Status</th>
+                            <th class="text-left  p-3 rounded-l-xl">Pertemuan</th>
+                            <th class="text-center  p-3">Modul</th>
+                            <th class="text-center  p-3 rounded-r-xl">Status</th>
                         </tr>
                     </thead>
+
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($moduls as $modul)
                             @php
                                 $nomorPertemuan = $loop->iteration;
-                                $status = data_get($nilaiHarian?->kehadiran, (string) $nomorPertemuan);
+
+                                $statusRaw = data_get($nilaiHarian?->kehadiran, (string) $nomorPertemuan);
+
+                                if (is_numeric($statusRaw)) {
+                                    $status = (int) $statusRaw >= 100 ? 'hadir' : 'alpa';
+                                } else {
+                                    $status = strtolower(trim($statusRaw ?? ''));
+                                }
+
+                                $labelStatus = match ($status) {
+                                    'hadir' => 'Hadir',
+                                    'sakit' => 'Sakit',
+                                    'izin' => 'Izin',
+                                    'alpa' => 'Alpa',
+                                    default => 'Belum ada',
+                                };
+
+                                $classStatus = match ($status) {
+                                    'hadir' => 'bg-green-100 text-green-700',
+                                    'sakit', 'izin', 'alpa' => 'bg-red-100 text-red-700',
+                                    default => 'bg-slate-100 text-slate-500',
+                                };
                             @endphp
 
                             <tr>
-                                <td class="p-3">Pertemuan {{ $nomorPertemuan }}</td>
-                                <td class="p-3">{{ $modul->nama_modul }}</td>
+                                <td class="p-3">
+                                    Pertemuan {{ $nomorPertemuan }}
+                                </td>
+
+                                <td class="p-3">
+                                    {{ $modul->nama_modul }}
+                                </td>
+
                                 <td class="p-3 text-right">
-                                    @if ($status)
-                                        <span class="px-3 py-1 rounded-full bg-green-100 text-green-700 font-bold">
-                                            {{ $status }}
-                                        </span>
-                                    @else
-                                        <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-500 font-bold">
-                                            Belum ada
-                                        </span>
-                                    @endif
+                                    <span class="px-3 py-1 rounded-full font-bold {{ $classStatus }}">
+                                        {{ $labelStatus }}
+                                    </span>
                                 </td>
                             </tr>
                         @empty

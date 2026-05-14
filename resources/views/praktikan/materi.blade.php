@@ -18,7 +18,7 @@
         </div>
     </section>
 
-    <!-- Searching dan Sorting -->
+    {{-- <!-- Searching dan Sorting -->
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
         <form method="GET" action="{{ route('praktikan.materi') }}" class="grid grid-cols-1 lg:grid-cols-4 gap-4">
             <div class="lg:col-span-2">
@@ -83,9 +83,9 @@
                 </a>
             </div>
         </form>
-    </section>
+    </section> --}}
 
-    <!-- Info Pengujian Algoritma -->
+    {{-- <!-- Info Pengujian Algoritma -->
     <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
             <div class="flex items-center gap-3 mb-3">
@@ -146,7 +146,7 @@
                 </div>
             </div>
         </div>
-    </section>
+    </section> --}}
 
     <!-- Data Materi -->
     <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
