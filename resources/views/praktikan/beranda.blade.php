@@ -40,20 +40,37 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-3xl p-6 text-center shadow-xl">
-                <h3 class="font-extrabold text-slate-900 mb-4">QR Code Presensi</h3>
+            <div class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
+                <div class="flex items-center justify-between mb-5">
+                    <div>
+                        <h3 class="text-2xl font-extrabold text-slate-900">
+                            QR Code Presensi
+                        </h3>
+                        <p class="text-slate-500 text-sm mt-1">
+                            Tunjukkan QR Code ini kepada asisten saat presensi praktikum.
+                        </p>
+                    </div>
 
-                <div class="flex justify-center rounded-2xl border border-slate-200 bg-slate-50 p-4 mb-4">
-                    {!! $svg !!}
+                    <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center text-2xl">
+                        📷
+                    </div>
                 </div>
 
-                <p class="text-xs text-slate-500 break-all mb-4">
-                    {{ $praktikan->qr_code }}
+                <div class="flex justify-center">
+                    <div class="bg-white p-5 rounded-3xl border-4 border-slate-100 shadow-sm">
+                        <img src="{{ $qrSvg }}"
+                            alt="QR Code Presensi Praktikan"
+                            class="w-72 h-72 object-contain">
+                    </div>
+                </div>
+
+                <p class="text-xs text-slate-400 text-center mt-4 break-all">
+                    Kode QR: {{ $qrContent }}
                 </p>
 
                 <a href="{{ route('praktikan.qr.download') }}"
-                    class="block w-full py-3 rounded-2xl bg-blue-700 text-white font-bold hover:bg-blue-800 transition">
-                        Download QR Code
+                class="mt-5 w-full inline-flex justify-center px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
+                    Download QR Code
                 </a>
             </div>
         </div>
