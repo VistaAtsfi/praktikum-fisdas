@@ -80,8 +80,10 @@
                         <th class="p-3 text-center">Laporan</th>
                         <th class="p-3 text-center">Responsi</th>
                         <th class="p-3 text-center">Asistensi</th>
-                        <th class="p-3 text-center">Praktik</th>
-                        <th class="p-3 text-center">Nilai Akhir</th>
+                        <th class="p-3 text-center">Kemampuan Praktik</th>
+                        <th class="p-3 text-center">Nilai Angka</th>
+                        <th class="p-3 text-center">Nilai Bobot</th>
+                        <th class="p-3 text-center">Nilai Huruf</th>
                         <th class="p-3 text-center rounded-r-xl">Aksi</th>
                     </tr>
                 </thead>
@@ -101,16 +103,22 @@
                             <td class="p-3 text-center font-extrabold">
                                 {{ $praktikan->nilaiAkhir->nilai_angka ?? '-' }}
                             </td>
+                            <td class="p-3 text-center font-extrabold">
+                                {{ $praktikan->nilaiAkhir->nilai_bobot ?? '-' }}
+                            </td>
+                            <td class="p-3 text-center font-extrabold">
+                                {{ $praktikan->nilaiAkhir->nilai_huruf ?? '-' }}
+                            </td>
                             <td class="p-3 text-center">
                                 <a href="{{ route('asisten.penilaian.show', $praktikan) }}"
-                                   class="inline-flex px-4 py-2 rounded-xl bg-blue-700 text-white font-bold hover:bg-blue-800 transition">
+                                class="inline-flex px-4 py-2 rounded-xl bg-blue-700 text-white font-bold hover:bg-blue-800 transition">
                                     Beri Nilai
                                 </a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11" class="p-5 text-center text-slate-500">
+                            <td colspan="13" class="p-5 text-center text-slate-500">
                                 Data praktikan belum tersedia.
                             </td>
                         </tr>

@@ -227,7 +227,7 @@
         </div>
 
         <div class="p-6 overflow-x-auto">
-            <table class="w-full min-w-[1000px] text-sm border border-slate-200">
+            <table class="w-full min-w-[1200px] text-sm border border-slate-200">
                 <thead>
                     <tr class="bg-purple-700 text-white">
                         <th class="border border-purple-800 p-3 text-center font-bold">Timestamp</th>
@@ -238,6 +238,7 @@
                         <th class="border border-purple-800 p-3 text-center font-bold">Sesi Praktikum</th>
                         <th class="border border-purple-800 p-3 text-center font-bold">Pertemuan</th>
                         <th class="border border-purple-800 p-3 text-center font-bold">Status Kehadiran</th>
+                        <th class="border border-purple-800 p-3 text-center font-bold">Keterangan</th>
                     </tr>
                 </thead>
 
@@ -297,13 +298,17 @@
 
                             <td class="border border-slate-200 p-3 text-center">
                                 <span class="px-3 py-1 rounded-full font-bold {{ $statusClass }}">
-                                    {{ $presensi->status ? ucfirst($presensi->status) : '-' }}
+                                    {{ $presensi->status ? ucfirst($presensi->status) : 'Kosong' }}
                                 </span>
+                            </td>
+
+                            <td class="border border-slate-200 p-3 text-center text-slate-600">
+                                {{ $presensi->keterangan ?? '-' }}
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="border border-slate-200 p-5 text-center text-slate-500">
+                            <td colspan="9" class="border border-slate-200 p-5 text-center text-slate-500">
                                 Belum ada presensi dari hasil scan QR.
                             </td>
                         </tr>
@@ -367,7 +372,10 @@
                                         <input type="hidden" name="modul_id" value="{{ $modul->id }}">
 
                                         <select name="status"
-                                                onchange="this.form.submit()"
+                                                data-current-status="{{ $status ?: 'kosong' }}"
+                                                data-nama-praktikan="{{ $praktikan->user->name ?? 'praktikan ini' }}"
+                                                data-pertemuan="Pertemuan {{ $loop->iteration }}"
+                                                onchange="bukaModalKonfirmasiPresensi(this)"
                                                 class="rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
                                             <option value="kosong" @selected(!$status)>-</option>
                                             <option value="hadir" @selected($status === 'hadir')>Hadir</option>
@@ -401,6 +409,72 @@
         </div>
     </section>
 
+    <!-- Modal Konfirmasi Ubah Presensi -->
+    <div id="modal-konfirmasi-presensi"
+        class="hidden fixed inset-0 z-50 items-center justify-center px-4">
+
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            onclick="tutupModalKonfirmasiPresensi(false)">
+        </div>
+
+        <div class="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-blue-100 overflow-hidden">
+            <div class="p-6 border-b border-blue-100">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center text-2xl">
+                        ?
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-extrabold text-slate-900">
+                            Konfirmasi Perubahan Presensi
+                        </h3>
+
+                        <p class="text-sm text-slate-500 mt-1">
+                            Pastikan data yang dipilih sudah benar sebelum disimpan.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <div class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                    <p class="text-sm text-slate-500">Praktikan</p>
+                    <p id="modal-nama-praktikan" class="font-extrabold text-slate-900 mt-1">-</p>
+                </div>
+
+                <div class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                    <p class="text-sm text-slate-500">Pertemuan</p>
+                    <p id="modal-pertemuan" class="font-extrabold text-slate-900 mt-1">-</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="rounded-2xl bg-red-50 border border-red-100 p-4 text-center">
+                        <p class="text-xs font-bold text-red-600">Status Lama</p>
+                        <p id="modal-status-lama" class="font-extrabold text-red-700 mt-1">-</p>
+                    </div>
+
+                    <div class="rounded-2xl bg-green-50 border border-green-100 p-4 text-center">
+                        <p class="text-xs font-bold text-green-600">Status Baru</p>
+                        <p id="modal-status-baru" class="font-extrabold text-green-700 mt-1">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row gap-3 justify-end">
+                <button type="button"
+                        onclick="tutupModalKonfirmasiPresensi(false)"
+                        class="px-5 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 font-extrabold hover:bg-slate-100 transition">
+                    Batal
+                </button>
+
+                <button type="button"
+                        onclick="tutupModalKonfirmasiPresensi(true)"
+                        class="px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
+                    Ya, Simpan
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 {{-- Script scanner --}}
@@ -520,6 +594,67 @@
             scanMessage.className = 'mt-3 text-sm font-semibold text-red-600';
             hasScanned = false;
         }
+    }
+
+    let pendingPresensiSelect = null;
+
+    function formatStatusPresensi(status) {
+        const daftarStatus = {
+            kosong: 'Kosong',
+            hadir: 'Hadir',
+            sakit: 'Sakit',
+            izin: 'Izin',
+            alpa: 'Alpa'
+        };
+
+        return daftarStatus[status] ?? status;
+    }
+
+    function bukaModalKonfirmasiPresensi(selectElement) {
+        const statusLama = selectElement.dataset.currentStatus || 'kosong';
+        const statusBaru = selectElement.value;
+
+        if (statusLama === statusBaru) {
+            return;
+        }
+
+        pendingPresensiSelect = selectElement;
+
+        document.getElementById('modal-nama-praktikan').textContent =
+            selectElement.dataset.namaPraktikan || 'Praktikan';
+
+        document.getElementById('modal-pertemuan').textContent =
+            selectElement.dataset.pertemuan || '-';
+
+        document.getElementById('modal-status-lama').textContent =
+            formatStatusPresensi(statusLama);
+
+        document.getElementById('modal-status-baru').textContent =
+            formatStatusPresensi(statusBaru);
+
+        const modal = document.getElementById('modal-konfirmasi-presensi');
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function tutupModalKonfirmasiPresensi(simpan) {
+        const modal = document.getElementById('modal-konfirmasi-presensi');
+
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+
+        if (!pendingPresensiSelect) {
+            return;
+        }
+
+        if (!simpan) {
+            pendingPresensiSelect.value = pendingPresensiSelect.dataset.currentStatus || 'kosong';
+            pendingPresensiSelect = null;
+            return;
+        }
+
+        pendingPresensiSelect.form.submit();
     }
 
     openScannerButton.addEventListener('click', startScanner);

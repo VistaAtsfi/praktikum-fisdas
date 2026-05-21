@@ -449,6 +449,9 @@ class AsistenController extends Controller
         abort_if(!$asisten || !$praktikum, 403);
         abort_if($praktikan->praktikum_id !== $praktikum->id, 403);
 
+        $this->sinkronPenulisanLaporan($praktikum->id, $praktikan->id);
+        $this->sinkronNilaiAkhir($praktikum->id, $praktikan->id);
+
         $praktikan->load([
             'user',
             'kelompok',
@@ -493,20 +496,23 @@ class AsistenController extends Controller
         abort_if($praktikan->praktikum_id !== $praktikum->id, 403);
 
         $request->validate([
-            'kategori' => ['required', 'in:penulisan_laporan,laporan_resmi,kemampuan_praktik,nilai_harian,nilai_akhir'],
+            'kategori' => ['required', 'in:penulisan_laporan,laporan_resmi,kemampuan_praktik,nilai_harian'],
         ]);
 
         if ($request->kategori === 'penulisan_laporan') {
             $request->validate([
                 'laporan_mingguan' => ['nullable', 'array'],
                 'laporan_mingguan.*' => ['nullable', 'numeric', 'min:0', 'max:100'],
-                'rata_rata_resmi' => ['nullable', 'numeric', 'min:0', 'max:100'],
             ]);
 
             $laporanMingguan = $this->bersihkanNilaiArray($request->input('laporan_mingguan', []));
             $rataMingguan = $this->rataRata($laporanMingguan);
-            $rataResmi = $request->filled('rata_rata_resmi') ? (float) $request->rata_rata_resmi : null;
-            $nilaiAkhir = $this->rataRata([$rataMingguan, $rataResmi]);
+
+            $rataResmi = NilaiLaporanResmi::where('praktikum_id', $praktikum->id)
+                ->where('praktikan_id', $praktikan->id)
+                ->value('rata_rata');
+
+            $nilaiAkhirLaporan = $this->rataRata([$rataMingguan, $rataResmi]);
 
             NilaiPenulisanLaporan::updateOrCreate(
                 [
@@ -517,7 +523,7 @@ class AsistenController extends Controller
                     'laporan_mingguan' => $laporanMingguan,
                     'rata_rata_mingguan' => $rataMingguan,
                     'rata_rata_resmi' => $rataResmi,
-                    'nilai_akhir' => $nilaiAkhir,
+                    'nilai_akhir' => $nilaiAkhirLaporan,
                 ]
             );
         }
@@ -541,16 +547,21 @@ class AsistenController extends Controller
                     'rata_rata' => $rataRata,
                 ]
             );
+
+            $this->sinkronPenulisanLaporan($praktikum->id, $praktikan->id);
         }
 
         if ($request->kategori === 'kemampuan_praktik') {
             $request->validate([
                 'nilai_modul' => ['nullable', 'array'],
-                'nilai_modul.*' => ['nullable', 'numeric', 'min:0', 'max:100'],
+                'nilai_modul.*.k1' => ['nullable', 'numeric', 'min:0', 'max:3'],
+                'nilai_modul.*.k2' => ['nullable', 'numeric', 'min:0', 'max:3'],
+                'nilai_modul.*.k3' => ['nullable', 'numeric', 'min:0', 'max:3'],
+                'nilai_modul.*.k4' => ['nullable', 'numeric', 'min:0', 'max:3'],
             ]);
 
-            $nilaiModul = $this->bersihkanNilaiArray($request->input('nilai_modul', []));
-            $rataRata = $this->rataRata($nilaiModul);
+            $nilaiModul = $this->bersihkanNilaiKemampuanPraktikum($request->input('nilai_modul', []));
+            $rataRata = $this->rataRataKemampuanPraktikum($nilaiModul);
 
             NilaiKemampuanPraktikum::updateOrCreate(
                 [
@@ -562,6 +573,19 @@ class AsistenController extends Controller
                     'rata_rata_akhir' => $rataRata,
                 ]
             );
+
+            $nilaiHarian = NilaiHarian::firstOrNew([
+                'praktikum_id' => $praktikum->id,
+                'praktikan_id' => $praktikan->id,
+            ]);
+
+            $nilaiHarian->kemampuan_praktik = collect($nilaiModul)
+                ->mapWithKeys(fn ($item, $modulId) => [$modulId => $item['rerata'] ?? null])
+                ->filter(fn ($value) => $value !== null)
+                ->toArray();
+
+            $nilaiHarian->rata_rata_kemampuan_praktik = $rataRata;
+            $nilaiHarian->save();
         }
 
         if ($request->kategori === 'nilai_harian') {
@@ -605,49 +629,12 @@ class AsistenController extends Controller
             );
         }
 
-        if ($request->kategori === 'nilai_akhir') {
-            $request->validate([
-                'kehadiran' => ['nullable', 'numeric', 'min:0', 'max:100'],
-                'laporan' => ['nullable', 'numeric', 'min:0', 'max:100'],
-                'responsi' => ['nullable', 'numeric', 'min:0', 'max:100'],
-                'asistensi' => ['nullable', 'numeric', 'min:0', 'max:100'],
-                'kemampuan_praktik' => ['nullable', 'numeric', 'min:0', 'max:100'],
-                'nilai_angka' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            ]);
-
-            $komponen = [
-                $request->filled('kehadiran') ? (float) $request->kehadiran : null,
-                $request->filled('laporan') ? (float) $request->laporan : null,
-                $request->filled('responsi') ? (float) $request->responsi : null,
-                $request->filled('asistensi') ? (float) $request->asistensi : null,
-                $request->filled('kemampuan_praktik') ? (float) $request->kemampuan_praktik : null,
-            ];
-
-            $nilaiAngka = $request->filled('nilai_angka')
-                ? (float) $request->nilai_angka
-                : $this->rataRata($komponen);
-
-            NilaiAkhir::updateOrCreate(
-                [
-                    'praktikum_id' => $praktikum->id,
-                    'praktikan_id' => $praktikan->id,
-                ],
-                [
-                    'kehadiran' => $komponen[0],
-                    'laporan' => $komponen[1],
-                    'responsi' => $komponen[2],
-                    'asistensi' => $komponen[3],
-                    'kemampuan_praktik' => $komponen[4],
-                    'nilai_angka' => $nilaiAngka,
-                    'nilai_bobot' => $this->konversiBobot($nilaiAngka),
-                    'nilai_huruf' => $this->konversiHuruf($nilaiAngka),
-                ]
-            );
-        }
+        $this->sinkronPenulisanLaporan($praktikum->id, $praktikan->id);
+        $this->sinkronNilaiAkhir($praktikum->id, $praktikan->id);
 
         return redirect()
             ->route('asisten.penilaian.show', $praktikan)
-            ->with('status', 'Nilai berhasil disimpan.');
+            ->with('status', 'Nilai berhasil disimpan dan nilai akhir diperbarui otomatis.');
     }
 
     private function bersihkanNilaiArray(array $values): array
@@ -758,7 +745,27 @@ class AsistenController extends Controller
         $nilaiHarian->rata_rata_kehadiran = $this->hitungRataKehadiran($kehadiran, $praktikumId);
         $nilaiHarian->save();
 
+        $presensiLama = Presensi::where('praktikum_id', $praktikumId)
+            ->where('praktikan_id', $praktikan->id)
+            ->where('modul_id', $modul->id)
+            ->first();
+
         if ($status) {
+            $statusLama = $presensiLama?->status;
+            $pernahScanQr = (bool) ($presensiLama?->qr_code_scanned);
+
+            $qrCodeScanned = $qrScanned || $pernahScanQr;
+
+            if ($qrScanned) {
+                $keterangan = 'Presensi disimpan melalui scan QR dengan status ' . ucfirst($status) . '.';
+            } elseif ($pernahScanQr && $statusLama && $statusLama !== $status) {
+                $keterangan = 'Status kehadiran diubah manual dari ' . ucfirst($statusLama) . ' menjadi ' . ucfirst($status) . '.';
+            } elseif ($pernahScanQr) {
+                $keterangan = 'Presensi hasil scan QR diperbarui manual dengan status ' . ucfirst($status) . '.';
+            } else {
+                $keterangan = 'Presensi diinput manual dengan status ' . ucfirst($status) . '.';
+            }
+
             Presensi::updateOrCreate(
                 [
                     'praktikum_id' => $praktikumId,
@@ -767,23 +774,203 @@ class AsistenController extends Controller
                 ],
                 [
                     'asisten_id' => $asisten->id,
-                    'waktu_absen' => now(config('app.timezone')),
-                    'email' => Auth::user()->email,
+                    'waktu_absen' => $qrScanned
+                        ? now(config('app.timezone'))
+                        : ($presensiLama?->waktu_absen ?? now(config('app.timezone'))),
+                    'email' => $qrScanned
+                        ? Auth::user()->email
+                        : ($presensiLama?->email ?? Auth::user()->email),
                     'nim' => $praktikan->user->nim ?? null,
                     'nama' => $praktikan->user->name ?? null,
                     'kelompok' => $praktikan->kelompok->nama_kelompok ?? null,
                     'sesi' => $praktikan->kelompok->sesi ?? null,
-                    'qr_code_scanned' => $qrScanned,
+                    'qr_code_scanned' => $qrCodeScanned,
                     'status' => $status,
-                    'keterangan' => ucfirst($status),
+                    'keterangan' => $keterangan,
                 ]
             );
         } else {
-            Presensi::where('praktikum_id', $praktikumId)
-                ->where('praktikan_id', $praktikan->id)
-                ->where('modul_id', $modul->id)
-                ->delete();
+            if ($presensiLama && $presensiLama->qr_code_scanned) {
+                $presensiLama->update([
+                    'status' => null,
+                    'keterangan' => 'Status kehadiran hasil scan QR dikosongkan melalui perubahan manual.',
+                ]);
+            } else {
+                Presensi::where('praktikum_id', $praktikumId)
+                    ->where('praktikan_id', $praktikan->id)
+                    ->where('modul_id', $modul->id)
+                    ->delete();
+            }
         }
+    }
+
+    private function normalisasiAngka($value): ?float
+    {
+        if ($value === null || $value === '' || !is_numeric($value)) {
+            return null;
+        }
+
+        return (float) $value;
+    }
+
+    private function bersihkanNilaiKemampuanPraktikum(array $values): array
+    {
+        $result = [];
+
+        foreach ($values as $modulId => $item) {
+            $k1 = $this->normalisasiAngka($item['k1'] ?? null);
+            $k2 = $this->normalisasiAngka($item['k2'] ?? null);
+            $k3 = $this->normalisasiAngka($item['k3'] ?? null);
+            $k4 = $this->normalisasiAngka($item['k4'] ?? null);
+
+            $adaNilai = collect([$k1, $k2, $k3, $k4])
+                ->filter(fn ($value) => $value !== null)
+                ->isNotEmpty();
+
+            if (!$adaNilai) {
+                continue;
+            }
+
+            $result[$modulId] = [
+                'k1' => $k1,
+                'k2' => $k2,
+                'k3' => $k3,
+                'k4' => $k4,
+                'rerata' => $this->hitungNilaiKemampuanModul($k1, $k2, $k3, $k4),
+            ];
+        }
+
+        return $result;
+    }
+
+    private function hitungNilaiKemampuanModul(?float $k1, ?float $k2, ?float $k3, ?float $k4): ?float
+    {
+        $adaNilai = collect([$k1, $k2, $k3, $k4])
+            ->filter(fn ($value) => $value !== null)
+            ->isNotEmpty();
+
+        if (!$adaNilai) {
+            return null;
+        }
+
+        $nilai = (
+            (($k1 ?? 0) * 0.10 / 3) +
+            (($k2 ?? 0) * 0.20 / 3) +
+            (($k3 ?? 0) * 0.20 / 3) +
+            (($k4 ?? 0) * 0.50 / 3)
+        ) * 90;
+
+        return round($nilai, 2);
+    }
+
+    private function rataRataKemampuanPraktikum(array $nilaiModul): ?float
+    {
+        $values = collect($nilaiModul)
+            ->pluck('rerata')
+            ->filter(fn ($value) => $value !== null && $value !== '' && is_numeric($value))
+            ->map(fn ($value) => (float) $value);
+
+        if ($values->isEmpty()) {
+            return null;
+        }
+
+        return round($values->avg(), 2);
+    }
+
+    private function sinkronPenulisanLaporan(int $praktikumId, int $praktikanId): void
+    {
+        $nilaiPenulisan = NilaiPenulisanLaporan::firstOrNew([
+            'praktikum_id' => $praktikumId,
+            'praktikan_id' => $praktikanId,
+        ]);
+
+        $laporanMingguan = $nilaiPenulisan->laporan_mingguan ?? [];
+        $rataMingguan = $this->rataRata($laporanMingguan);
+
+        $rataResmi = NilaiLaporanResmi::where('praktikum_id', $praktikumId)
+            ->where('praktikan_id', $praktikanId)
+            ->value('rata_rata');
+
+        $nilaiPenulisan->rata_rata_mingguan = $rataMingguan;
+        $nilaiPenulisan->rata_rata_resmi = $rataResmi;
+        $nilaiPenulisan->nilai_akhir = $this->rataRata([$rataMingguan, $rataResmi]);
+        $nilaiPenulisan->save();
+    }
+
+    private function sinkronNilaiAkhir(int $praktikumId, int $praktikanId): void
+    {
+        $nilaiHarian = NilaiHarian::where('praktikum_id', $praktikumId)
+            ->where('praktikan_id', $praktikanId)
+            ->first();
+
+        $nilaiPenulisan = NilaiPenulisanLaporan::where('praktikum_id', $praktikumId)
+            ->where('praktikan_id', $praktikanId)
+            ->first();
+
+        $nilaiKemampuan = NilaiKemampuanPraktikum::where('praktikum_id', $praktikumId)
+            ->where('praktikan_id', $praktikanId)
+            ->first();
+
+        $kehadiran = $this->normalisasiAngka($nilaiHarian?->rata_rata_kehadiran);
+        $laporan = $this->normalisasiAngka($nilaiPenulisan?->nilai_akhir);
+        $responsi = $this->normalisasiAngka($nilaiHarian?->rata_rata_responsi);
+        $asistensi = $this->normalisasiAngka($nilaiHarian?->rata_rata_asistensi);
+        $kemampuanPraktik = $this->normalisasiAngka(
+            $nilaiHarian?->rata_rata_kemampuan_praktik ?? $nilaiKemampuan?->rata_rata_akhir
+        );
+
+        $nilaiAngka = $this->hitungNilaiAngkaAkhir(
+            $kehadiran,
+            $laporan,
+            $responsi,
+            $asistensi,
+            $kemampuanPraktik
+        );
+
+        NilaiAkhir::updateOrCreate(
+            [
+                'praktikum_id' => $praktikumId,
+                'praktikan_id' => $praktikanId,
+            ],
+            [
+                'kehadiran' => $kehadiran,
+                'laporan' => $laporan,
+                'responsi' => $responsi,
+                'asistensi' => $asistensi,
+                'kemampuan_praktik' => $kemampuanPraktik,
+                'nilai_angka' => $nilaiAngka,
+                'nilai_bobot' => $this->konversiBobot($nilaiAngka),
+                'nilai_huruf' => $this->konversiHuruf($nilaiAngka),
+            ]
+        );
+    }
+
+    private function hitungNilaiAngkaAkhir(
+        ?float $kehadiran,
+        ?float $laporan,
+        ?float $responsi,
+        ?float $asistensi,
+        ?float $kemampuanPraktik
+    ): ?float {
+        $adaNilai = collect([
+            $kehadiran,
+            $laporan,
+            $responsi,
+            $asistensi,
+            $kemampuanPraktik,
+        ])->filter(fn ($value) => $value !== null)->isNotEmpty();
+
+        if (!$adaNilai) {
+            return null;
+        }
+
+        $nilai = (($kehadiran ?? 0) * 0.10)
+            + (($laporan ?? 0) * 0.10)
+            + (($responsi ?? 0) * 0.10)
+            + (($asistensi ?? 0) * 0.20)
+            + (($kemampuanPraktik ?? 0) * 0.50);
+
+        return round($nilai, 2);
     }
 
     private function konversiHuruf(?float $nilai): ?string
@@ -793,13 +980,9 @@ class AsistenController extends Controller
         }
 
         return match (true) {
-            $nilai >= 85 => 'A',
-            $nilai >= 80 => 'A-',
-            $nilai >= 75 => 'B+',
+            $nilai >= 80 => 'A',
             $nilai >= 70 => 'B',
-            $nilai >= 65 => 'B-',
-            $nilai >= 60 => 'C+',
-            $nilai >= 55 => 'C',
+            $nilai >= 60 => 'C',
             $nilai >= 50 => 'D',
             default => 'E',
         };
@@ -812,13 +995,9 @@ class AsistenController extends Controller
         }
 
         return match (true) {
-            $nilai >= 85 => 4.00,
-            $nilai >= 80 => 3.75,
-            $nilai >= 75 => 3.50,
-            $nilai >= 70 => 3.00,
-            $nilai >= 65 => 2.75,
+            $nilai >= 80 => 4.00,
+            $nilai >= 70 => 3.50,
             $nilai >= 60 => 2.50,
-            $nilai >= 55 => 2.00,
             $nilai >= 50 => 1.00,
             default => 0.00,
         };
