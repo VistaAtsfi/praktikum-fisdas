@@ -261,6 +261,18 @@
                             Daftar
                         </a>
                     </div>
+
+                    @guest
+                        <div class="text-center mt-1">
+                            <p class="text-xs text-slate-500 mt-4 text-center">
+                                Belum punya akun praktikan?
+                                <a href="{{ route('register') }}" class="text-blue-700 font-extrabold hover:underline">
+                                    Daftar sekarang
+                                </a>
+                            </p>
+                        </div>
+                    @endguest
+                    
                 </div>
 
                 <!-- Asisten -->
@@ -313,17 +325,6 @@
                     </p>
                 </div>
             </div>
-
-            @guest
-                <div class="text-center mt-10">
-                    <p class="text-slate-600">
-                        Belum punya akun praktikan?
-                        <a href="{{ route('register') }}" class="text-blue-700 font-extrabold hover:underline">
-                            Daftar sekarang
-                        </a>
-                    </p>
-                </div>
-            @endguest
         </div>
     </section>
 

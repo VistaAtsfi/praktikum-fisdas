@@ -5,6 +5,7 @@ use App\Http\Controllers\CompleteProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PraktikanAreaController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\KoordinatorController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -102,8 +103,68 @@ Route::middleware(['auth', 'verified'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('role:koordinator')->group(function () {
-        Route::get('/dashboard/koordinator', [DashboardController::class, 'koordinator'])
+        Route::get('/dashboard/koordinator', [KoordinatorController::class, 'beranda'])
             ->name('dashboard.koordinator');
+
+        Route::get('/koordinator/periode', [KoordinatorController::class, 'periode'])
+            ->name('koordinator.periode');
+
+        Route::post('/koordinator/periode', [KoordinatorController::class, 'storePeriode'])
+            ->name('koordinator.periode.store');
+
+        Route::get('/koordinator/periode/{praktikum}', [KoordinatorController::class, 'periodeDetail'])
+            ->name('koordinator.periode.show');
+
+        Route::patch('/koordinator/periode/{praktikum}', [KoordinatorController::class, 'updatePeriode'])
+            ->name('koordinator.periode.update');
+
+        Route::get('/koordinator/materi', [KoordinatorController::class, 'materi'])
+            ->name('koordinator.materi');
+
+        Route::post('/koordinator/materi', [KoordinatorController::class, 'storeMateri'])
+            ->name('koordinator.materi.store');
+
+        Route::delete('/koordinator/materi/{materi}', [KoordinatorController::class, 'deleteMateri'])
+            ->name('koordinator.materi.delete');
+
+        Route::get('/koordinator/asisten', [KoordinatorController::class, 'asisten'])
+            ->name('koordinator.asisten');
+
+        Route::post('/koordinator/asisten', [KoordinatorController::class, 'storeAsisten'])
+            ->name('koordinator.asisten.store');
+
+        Route::patch('/koordinator/asisten/{asisten}/reset-password', [KoordinatorController::class, 'resetPasswordAsisten'])
+            ->name('koordinator.asisten.reset-password');
+
+        Route::get('/koordinator/praktikan', [KoordinatorController::class, 'praktikan'])
+            ->name('koordinator.praktikan');
+
+        Route::get('/koordinator/kelompok', [KoordinatorController::class, 'kelompok'])
+            ->name('koordinator.kelompok');
+
+        Route::post('/koordinator/kelompok', [KoordinatorController::class, 'storeKelompok'])
+            ->name('koordinator.kelompok.store');
+
+        Route::get('/koordinator/kelompok/{kelompok}', [KoordinatorController::class, 'kelompokDetail'])
+            ->name('koordinator.kelompok.show');
+
+        Route::patch('/koordinator/kelompok/{kelompok}', [KoordinatorController::class, 'updateKelompok'])
+            ->name('koordinator.kelompok.update');
+
+        Route::get('/koordinator/penilaian', [KoordinatorController::class, 'penilaian'])
+            ->name('koordinator.penilaian');
+
+        Route::get('/koordinator/presensi', [KoordinatorController::class, 'presensi'])
+            ->name('koordinator.presensi');
+
+        Route::get('/koordinator/nilai-akhir', [KoordinatorController::class, 'nilaiAkhir'])
+            ->name('koordinator.nilai-akhir');
+
+        Route::get('/koordinator/nilai-akhir/export', [KoordinatorController::class, 'exportNilaiAkhir'])
+            ->name('koordinator.nilai-akhir.export');
+
+        Route::get('/koordinator/evaluasi-algoritma', [KoordinatorController::class, 'evaluasiAlgoritma'])
+            ->name('koordinator.evaluasi-algoritma');
     });
 
     /*
