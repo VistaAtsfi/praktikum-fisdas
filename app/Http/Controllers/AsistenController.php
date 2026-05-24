@@ -28,7 +28,7 @@ class AsistenController extends Controller
 
     private function asisten(): ?Asisten
     {
-        return Asisten::with('praktikum')
+        return Asisten::with('user', 'praktikum')
             ->where('user_id', Auth::id())
             ->latest()
             ->first();
@@ -68,9 +68,36 @@ class AsistenController extends Controller
             ? Presensi::where('praktikum_id', $praktikum->id)->count()
             : 0;
 
-        $praktikanBelumAsistensi = $praktikans->filter(function ($praktikan) {
-            return !$praktikan->nilaiHarian || empty($praktikan->nilaiHarian->rata_rata_asistensi);
-        });
+        $moduls = $moduls->values();
+
+        $praktikanBelumAsistensi = $praktikans
+            ->map(function ($praktikan) use ($moduls) {
+                $asistensi = collect($praktikan->nilaiHarian?->asistensi ?? []);
+
+                $modulBelumAsistensi = $moduls
+                    ->filter(function ($modul) use ($asistensi) {
+                        $nilai = $asistensi->get((string) $modul->id);
+
+                        return $nilai === null || $nilai === '' || !is_numeric($nilai);
+                    })
+                    ->map(function ($modul, $index) use ($moduls) {
+                        $nomorPertemuan = $moduls->search(fn ($item) => $item->id === $modul->id) + 1;
+
+                        return [
+                            'pertemuan' => $nomorPertemuan,
+                            'nama_modul' => $modul->nama_modul,
+                        ];
+                    })
+                    ->values();
+
+                $praktikan->modul_belum_asistensi = $modulBelumAsistensi;
+
+                return $praktikan;
+            })
+            ->filter(function ($praktikan) {
+                return $praktikan->modul_belum_asistensi->isNotEmpty();
+            })
+            ->values();
 
         return view('asisten.beranda', compact(
             'asisten',
@@ -390,12 +417,24 @@ class AsistenController extends Controller
 
         if (!$praktikum) {
             $praktikans = collect();
+            $rekapNilaiHuruf = collect();
+            $chartNilaiLabels = ['A', 'B', 'C', 'D', 'E'];
+            $chartNilaiData = [0, 0, 0, 0, 0];
+            $totalDinilai = 0;
+            $totalBelumDinilai = 0;
+            $totalPraktikanChart = 0;
 
             return view('asisten.penilaian', compact(
                 'asisten',
                 'praktikum',
                 'praktikans',
-                'kelompoks'
+                'kelompoks',
+                'rekapNilaiHuruf',
+                'chartNilaiLabels',
+                'chartNilaiData',
+                'totalDinilai',
+                'totalBelumDinilai',
+                'totalPraktikanChart'
             ));
         }
 
@@ -426,6 +465,56 @@ class AsistenController extends Controller
             }
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Data untuk chart
+        |--------------------------------------------------------------------------
+        | Chart mengikuti filter yang sedang dipakai di halaman penilaian.
+        */
+        $praktikansUntukChart = (clone $query)
+            ->with(['user', 'kelompok', 'nilaiAkhir'])
+            ->get();
+
+        $chartNilaiLabels = ['A', 'B', 'C', 'D', 'E'];
+
+        $rekapNilaiHuruf = collect($chartNilaiLabels)->mapWithKeys(function ($huruf) use ($praktikansUntukChart) {
+            $items = $praktikansUntukChart
+                ->filter(function ($praktikan) use ($huruf) {
+                    return strtoupper((string) ($praktikan->nilaiAkhir->nilai_huruf ?? '')) === $huruf;
+                })
+                ->values();
+
+            return [
+                $huruf => [
+                    'total' => $items->count(),
+                    'praktikans' => $items->map(function ($praktikan) {
+                        return [
+                            'nim' => $praktikan->user->nim ?? '-',
+                            'nama' => $praktikan->user->name ?? '-',
+                            'prodi' => $praktikan->user->prodi ?? '-',
+                            'kelompok' => $praktikan->kelompok->nama_kelompok ?? '-',
+                            'nilai_angka' => $praktikan->nilaiAkhir->nilai_angka ?? null,
+                        ];
+                    })->values(),
+                ],
+            ];
+        });
+
+        $chartNilaiData = collect($chartNilaiLabels)
+            ->map(fn ($huruf) => $rekapNilaiHuruf[$huruf]['total'] ?? 0)
+            ->values()
+            ->toArray();
+
+        $totalDinilai = $praktikansUntukChart
+            ->filter(fn ($praktikan) => !empty($praktikan->nilaiAkhir?->nilai_huruf))
+            ->count();
+
+        $totalBelumDinilai = $praktikansUntukChart
+            ->filter(fn ($praktikan) => empty($praktikan->nilaiAkhir?->nilai_huruf))
+            ->count();
+
+        $totalPraktikanChart = $praktikansUntukChart->count();
+
         $praktikans = $query
             ->latest()
             ->paginate(10)
@@ -435,7 +524,13 @@ class AsistenController extends Controller
             'asisten',
             'praktikum',
             'praktikans',
-            'kelompoks'
+            'kelompoks',
+            'rekapNilaiHuruf',
+            'chartNilaiLabels',
+            'chartNilaiData',
+            'totalDinilai',
+            'totalBelumDinilai',
+            'totalPraktikanChart'
         ));
     }
 

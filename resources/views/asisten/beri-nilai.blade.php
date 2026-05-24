@@ -423,9 +423,28 @@
             <h2 class="text-2xl font-extrabold text-slate-900">
                 Nilai Kemampuan Praktikum
             </h2>
+
             <p class="text-slate-500 mt-1">
-                Isi skor K1 sampai K4 berdasarkan rubrik kemampuan praktik. Nilai rerata akan dihitung otomatis.
+                Isi skor K1 sampai K4 berdasarkan kemampuan praktikan saat mengikuti praktikum. Nilai rerata akan dihitung otomatis.
             </p>
+
+            <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                <span class="text-slate-500 font-semibold">
+                    Keterangan skor:
+                </span>
+
+                <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold">
+                    3 = Baik
+                </span>
+
+                <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold">
+                    2 = Cukup
+                </span>
+
+                <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold">
+                    1 = Kurang
+                </span>
+            </div>
         </div>
 
         <form id="form-kemampuan-praktik" method="POST" action="{{ route('asisten.penilaian.store', $praktikan) }}">

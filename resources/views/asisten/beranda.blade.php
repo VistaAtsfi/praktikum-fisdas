@@ -16,7 +16,7 @@
             </h1>
 
             <p class="text-blue-100 leading-relaxed max-w-3xl">
-                Di halaman beranda asisten ini, Anda dapat memantau data praktikan, presensi, materi, dan penilaian praktikum.
+                Di halaman beranda Asisten Praktikum Fisika Dasar ini, Anda dapat memantau data praktikan, presensi, materi, dan penilaian praktikum.
             </p>
 
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-6">
@@ -68,11 +68,22 @@
             </div>
 
             <div class="space-y-3">
-                <p><span class="font-bold text-slate-700">Jenis Kelamin:</span> {{ auth()->user()->jenis_kelamin ?? '-' }}</p>
+                <p class="text-slate-800">
+                    <span class="font-bold text-slate-900">Jenis Kelamin:</span>
+                    <span class="font-normal text-slate-800">
+                        {{ $asisten->user->jenis_kelamin === 'L' ? 'Laki-laki' : ($asisten->user->jenis_kelamin === 'P' ? 'Perempuan' : '-') }}
+                    </span>
+                </p>
                 <p><span class="font-bold text-slate-700">Nomor Ponsel:</span> {{ auth()->user()->nomor_ponsel ?? '-' }}</p>
                 <p><span class="font-bold text-slate-700">Praktikum:</span> {{ $praktikum->nama ?? '-' }}</p>
                 <p><span class="font-bold text-slate-700">Status:</span> {{ ucfirst($asisten->status ?? '-') }}</p>
             </div>
+        </div>
+        <div class="mt-6 rounded-2xl bg-blue-50 border border-blue-100 px-5 py-4">
+            <p class="text-sm text-blue-800 leading-relaxed">
+                <span class="font-extrabold">Catatan:</span>
+                Data profil asisten dikelola oleh koordinator. Jika terdapat kesalahan data atau ingin melakukan perubahan, silakan hubungi koordinator.
+            </p>
         </div>
     </section>
 
@@ -116,6 +127,7 @@
                         <th class="p-3 text-center">No. Ponsel</th>
                         <th class="p-3 text-center">Email</th>
                         <th class="p-3 text-center">Prodi</th>
+                        <th class="p-3 text-center">Belum Asistensi</th>
                         <th class="p-3 text-center rounded-r-xl">Aksi</th>
                     </tr>
                 </thead>
@@ -128,6 +140,22 @@
                             <td class="p-3 text-center">{{ $praktikan->user->nomor_ponsel ?? '-' }}</td>
                             <td class="p-3 text-center">{{ $praktikan->user->email ?? '-' }}</td>
                             <td class="p-3 text-center">{{ $praktikan->user->prodi ?? '-' }}</td>
+                            <td class="p-3">
+                                <div class="space-y-2">
+                                    @forelse (($praktikan->modul_belum_asistensi ?? collect()) as $modul)
+                                        <div class="rounded-2xl bg-amber-50 border border-amber-100 px-3 py-2 text-xs">
+                                            <p class="font-extrabold text-amber-700">
+                                                Pertemuan {{ $modul['pertemuan'] }}
+                                            </p>
+                                            <p class="text-slate-500 mt-1">
+                                                {{ $modul['nama_modul'] ?? '-' }}
+                                            </p>
+                                        </div>
+                                    @empty
+                                        <span class="text-slate-400">-</span>
+                                    @endforelse
+                                </div>
+                            </td>
                             <td class="p-3 text-center">
                                 <a href="{{ route('asisten.penilaian.show', $praktikan) }}"
                                    class="inline-flex px-3 py-2 rounded-xl bg-blue-700 text-white font-bold hover:bg-blue-800 transition">
