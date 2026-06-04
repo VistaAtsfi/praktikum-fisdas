@@ -11,6 +11,7 @@ use App\Models\Modul;
 use App\Models\NilaiAkhir;
 use App\Models\Praktikan;
 use App\Models\Praktikum;
+use App\Models\PraktikumProdi;
 use App\Models\Presensi;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -123,39 +124,50 @@ class KoordinatorController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $praktikumProdis = PraktikumProdi::with('praktikum')
+            ->orderBy('nama_prodi')
+            ->get()
+            ->groupBy('praktikum_id');
+
         return view('koordinator.periode', compact(
             'praktikums',
-            'tahunAkademikOptions'
+            'tahunAkademikOptions',
+            'praktikumProdis'
         ));
     }
 
-    public function storePeriode(Request $request): RedirectResponse
+    public function storeProdiPraktikum(Request $request): RedirectResponse
     {
         $this->pastikanKoordinator();
 
         $request->validate([
-            'nama' => ['required', 'in:Praktikum Fisika Dasar 1,Praktikum Fisika Dasar 2'],
-            'jenis_praktikum' => ['required', 'in:fisdas_1,fisdas_2'],
-            'tahun_akademik' => ['required', 'regex:/^\d{4}\/\d{4}$/'],
-            'semester' => ['required', 'in:Ganjil,Genap'],
-            'is_aktif' => ['nullable', 'boolean'],
+            'praktikum_id' => ['required', 'exists:praktikums,id'],
+            'nama_prodi' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('praktikum_prodis', 'nama_prodi')
+                    ->where(fn ($query) => $query->where('praktikum_id', $request->praktikum_id)),
+            ],
         ], [
-            'tahun_akademik.regex' => 'Format tahun akademik harus menggunakan slash, contoh: 2025/2026.',
+            'nama_prodi.unique' => 'Program studi ini sudah terdaftar pada periode praktikum tersebut.',
         ]);
 
-        if ($request->boolean('is_aktif')) {
-            Praktikum::query()->update(['is_aktif' => false]);
-        }
-
-        Praktikum::create([
-            'nama' => $request->nama,
-            'jenis_praktikum' => $request->jenis_praktikum,
-            'tahun_akademik' => $request->tahun_akademik,
-            'semester' => $request->semester,
-            'is_aktif' => $request->boolean('is_aktif'),
+        PraktikumProdi::create([
+            'praktikum_id' => $request->praktikum_id,
+            'nama_prodi' => trim($request->nama_prodi),
         ]);
 
-        return back()->with('status', 'Periode praktikum berhasil ditambahkan.');
+        return back()->with('status', 'Program studi berhasil ditambahkan ke periode praktikum.');
+    }
+
+    public function deleteProdiPraktikum(PraktikumProdi $praktikumProdi): RedirectResponse
+    {
+        $this->pastikanKoordinator();
+
+        $praktikumProdi->delete();
+
+        return back()->with('status', 'Program studi berhasil dihapus dari periode praktikum.');
     }
 
     public function updatePeriode(Request $request, Praktikum $praktikum): RedirectResponse
@@ -396,6 +408,12 @@ class KoordinatorController extends Controller
 
         $praktikums = Praktikum::latest()->get();
 
+        $prodisByPraktikum = PraktikumProdi::orderBy('nama_prodi')
+            ->get()
+            ->groupBy('praktikum_id')
+            ->map(fn ($items) => $items->pluck('nama_prodi')->values())
+            ->toArray();
+
         $query = Asisten::with(['user', 'praktikum']);
 
         if ($request->filled('praktikum_id')) {
@@ -412,7 +430,8 @@ class KoordinatorController extends Controller
             $query->whereHas('user', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('nim', 'like', "%{$search}%");
+                    ->orWhere('nim', 'like', "%{$search}%")
+                    ->orWhere('prodi', 'like', "%{$search}%");
             });
         }
 
@@ -421,7 +440,11 @@ class KoordinatorController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return view('koordinator.asisten', compact('praktikums', 'asistens'));
+        return view('koordinator.asisten', compact(
+            'praktikums',
+            'asistens',
+            'prodisByPraktikum'
+        ));
     }
 
     public function storeAsisten(Request $request): RedirectResponse
@@ -434,10 +457,18 @@ class KoordinatorController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
             'nim' => ['nullable', 'string', 'max:30', 'unique:users,nim'],
-            'prodi' => ['nullable', 'string', 'max:100'],
+            'prodi' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::exists('praktikum_prodis', 'nama_prodi')
+                    ->where(fn ($query) => $query->where('praktikum_id', $request->praktikum_id)),
+            ],
             'jenis_kelamin' => ['nullable', 'in:L,P'],
             'nomor_ponsel' => ['nullable', 'string', 'max:20'],
             'status' => ['required', 'in:aktif,nonaktif'],
+        ], [
+            'prodi.exists' => 'Program studi belum terdaftar pada periode praktikum yang dipilih.',
         ]);
 
         $user = User::create([

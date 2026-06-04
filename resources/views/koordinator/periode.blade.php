@@ -132,6 +132,109 @@
         </form>
     </section>
 
+    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
+        <h2 class="text-2xl font-extrabold text-slate-900 mb-5">
+            Program Studi Peserta Praktikum
+        </h2>
+
+        <p class="text-slate-500 mb-5">
+            Tambahkan program studi yang mengikuti periode praktikum. Data ini akan menjadi pilihan dropdown prodi pada menu berikutnya.
+        </p>
+
+        <form method="POST"
+            action="{{ route('koordinator.periode.prodi.store') }}"
+            class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            @csrf
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    Periode Praktikum
+                </label>
+
+                <select name="praktikum_id"
+                        required
+                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">Pilih Periode</option>
+
+                    @foreach ($praktikums as $praktikum)
+                        <option value="{{ $praktikum->id }}">
+                            {{ $praktikum->nama }} - {{ $praktikum->tahun_akademik }} {{ $praktikum->semester }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    Nama Program Studi
+                </label>
+
+                <input type="text"
+                    name="nama_prodi"
+                    required
+                    placeholder="Contoh: Informatika"
+                    class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+            </div>
+
+            <div class="flex items-end">
+                <button type="submit"
+                        class="w-full px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
+                    Tambah Prodi
+                </button>
+            </div>
+        </form>
+
+        <div class="mt-6 overflow-x-auto">
+            <table class="w-full min-w-[700px] text-sm">
+                <thead>
+                    <tr class="bg-slate-100">
+                        <th class="p-3 text-center rounded-l-xl">Periode Praktikum</th>
+                        <th class="p-3 text-center">Program Studi</th>
+                        <th class="p-3 text-center rounded-r-xl">Aksi</th>
+                    </tr>
+                </thead>
+
+                <tbody class="divide-y divide-slate-100">
+                    @forelse (($praktikumProdis ?? collect()) as $praktikumId => $prodis)
+                        @foreach ($prodis as $prodi)
+                            <tr>
+                                <td class="p-3 text-center">
+                                    {{ $prodi->praktikum->nama ?? '-' }} -
+                                    {{ $prodi->praktikum->tahun_akademik ?? '-' }}
+                                    {{ $prodi->praktikum->semester ?? '' }}
+                                </td>
+
+                                <td class="p-3 text-center font-bold">
+                                    {{ $prodi->nama_prodi }}
+                                </td>
+
+                                <td class="p-3 text-center">
+                                    <form method="POST"
+                                        action="{{ route('koordinator.periode.prodi.delete', $prodi) }}"
+                                        onsubmit="return confirm('Yakin ingin menghapus program studi ini dari periode praktikum?')">
+                                        @csrf
+                                        @method('DELETE')
+
+                                        <button type="submit"
+                                                class="px-4 py-2 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition">
+                                            Hapus
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="3" class="p-5 text-center text-slate-500">
+                                Program studi peserta praktikum belum tersedia.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
+
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
         <div class="p-6 border-b border-blue-100">
             <form method="GET"

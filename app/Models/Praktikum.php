@@ -36,6 +36,11 @@ class Praktikum extends Model
         return $this->hasMany(Asisten::class);
     }
 
+    public function prodis()
+    {
+        return $this->hasMany(PraktikumProdi::class);
+    }
+
     public function moduls()
     {
         return $this->hasMany(Modul::class);

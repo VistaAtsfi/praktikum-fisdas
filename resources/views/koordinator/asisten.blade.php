@@ -1,7 +1,7 @@
 @extends('layouts.koordinator', ['title' => 'Data Asisten'])
 
 @section('content')
-<div class="space-y-8">
+<div class="space-y-8" x-data="asistenKoordinatorForm()">
 
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
         <h1 class="text-3xl font-extrabold text-slate-900">Data Asisten Praktikum</h1>
@@ -16,7 +16,11 @@
 
             <div>
                 <label class="block text-sm font-bold text-slate-700 mb-2">Periode Praktikum</label>
-                <select name="praktikum_id" required class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                <select name="praktikum_id"
+                    required
+                    x-model="selectedPraktikum"
+                    @change="selectedProdi = ''"
+                    class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
                     <option value="">Pilih Periode</option>
                     @foreach ($praktikums as $praktikum)
                         <option value="{{ $praktikum->id }}">{{ $praktikum->nama }} - {{ $praktikum->tahun_akademik }}</option>
@@ -53,8 +57,25 @@
             </div>
 
             <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">Program Studi</label>
-                <input type="text" name="prodi" class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    Program Studi
+                </label>
+
+                <select name="prodi"
+                        required
+                        x-model="selectedProdi"
+                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">Pilih Program Studi</option>
+
+                    <template x-for="prodi in prodiOptions" :key="prodi">
+                        <option :value="prodi" x-text="prodi"></option>
+                    </template>
+                </select>
+
+                <p x-show="selectedPraktikum && prodiOptions.length === 0"
+                class="text-xs text-red-500 mt-2">
+                    Program studi untuk periode ini belum ditambahkan di menu Periode Praktikum.
+                </p>
             </div>
 
             <div>
@@ -100,9 +121,17 @@
                     <option value="nonaktif" @selected(request('status') === 'nonaktif')>Nonaktif</option>
                 </select>
 
-                <button type="submit" class="px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
-                    Terapkan
-                </button>
+                <div class="flex gap-3">
+                    <button type="submit"
+                            class="px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
+                        Cari
+                    </button>
+
+                    <a href="{{ route('koordinator.asisten') }}"
+                    class="px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 font-extrabold hover:bg-slate-200 transition">
+                        Reset
+                    </a>
+                </div>
             </form>
         </div>
 
@@ -161,4 +190,17 @@
     </section>
 
 </div>
+<script>
+    function asistenKoordinatorForm() {
+        return {
+            selectedPraktikum: '',
+            selectedProdi: '',
+            prodisByPraktikum: @json($prodisByPraktikum ?? []),
+
+            get prodiOptions() {
+                return this.prodisByPraktikum[this.selectedPraktikum] ?? [];
+            }
+        }
+    }
+</script>
 @endsection

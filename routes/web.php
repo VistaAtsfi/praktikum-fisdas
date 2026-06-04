@@ -121,6 +121,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/koordinator/periode/{praktikum}', [KoordinatorController::class, 'updatePeriode'])
             ->name('koordinator.periode.update');
 
+        Route::post('/koordinator/periode/prodi', [KoordinatorController::class, 'storeProdiPraktikum'])
+            ->name('koordinator.periode.prodi.store');
+
+        Route::delete('/koordinator/periode/prodi/{praktikumProdi}', [KoordinatorController::class, 'deleteProdiPraktikum'])
+            ->name('koordinator.periode.prodi.delete');
+
         Route::get('/koordinator/materi', [KoordinatorController::class, 'materi'])
             ->name('koordinator.materi');
 
