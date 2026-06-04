@@ -163,15 +163,33 @@ class KoordinatorController extends Controller
         $this->pastikanKoordinator();
 
         $request->validate([
-            'nama' => ['required', 'string', 'max:255'],
-            'jenis_praktikum' => ['required', 'string', 'max:100'],
-            'tahun_akademik' => ['required', 'string', 'max:50'],
-            'semester' => ['required', 'string', 'max:50'],
+            'nama' => ['required', 'in:Praktikum Fisika Dasar 1,Praktikum Fisika Dasar 2'],
+            'jenis_praktikum' => ['required', 'in:fisdas_1,fisdas_2'],
+            'tahun_akademik' => ['required', 'regex:/^\d{4}\/\d{4}$/'],
+            'semester' => ['required', 'in:Ganjil,Genap'],
             'is_aktif' => ['nullable', 'boolean'],
+        ], [
+            'tahun_akademik.regex' => 'Format tahun akademik harus menggunakan slash, contoh: 2025/2026.',
         ]);
 
+        $jenisSeharusnya = match ($request->nama) {
+            'Praktikum Fisika Dasar 1' => 'fisdas_1',
+            'Praktikum Fisika Dasar 2' => 'fisdas_2',
+            default => null,
+        };
+
+        if ($request->jenis_praktikum !== $jenisSeharusnya) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'jenis_praktikum' => 'Jenis praktikum harus sesuai dengan nama praktikum yang dipilih.',
+                ]);
+        }
+
         if ($request->boolean('is_aktif')) {
-            Praktikum::where('id', '!=', $praktikum->id)->update(['is_aktif' => false]);
+            Praktikum::where('id', '!=', $praktikum->id)->update([
+                'is_aktif' => false,
+            ]);
         }
 
         $praktikum->update([
@@ -204,20 +222,39 @@ class KoordinatorController extends Controller
             ->count();
 
         $jumlahPraktikan = $praktikanList->count();
-        $praktikanLaki = $praktikanList->where('user.jenis_kelamin', 'L')->count();
-        $praktikanPerempuan = $praktikanList->where('user.jenis_kelamin', 'P')->count();
+
+        $praktikanLaki = $praktikanList
+            ->filter(fn ($praktikan) => $praktikan->user?->jenis_kelamin === 'L')
+            ->count();
+
+        $praktikanPerempuan = $praktikanList
+            ->filter(fn ($praktikan) => $praktikan->user?->jenis_kelamin === 'P')
+            ->count();
 
         $jumlahAsisten = $asistenList->count();
-        $asistenLaki = $asistenList->where('user.jenis_kelamin', 'L')->count();
-        $asistenPerempuan = $asistenList->where('user.jenis_kelamin', 'P')->count();
 
+        $asistenLaki = $asistenList
+            ->filter(fn ($asisten) => $asisten->user?->jenis_kelamin === 'L')
+            ->count();
+
+        $asistenPerempuan = $asistenList
+            ->filter(fn ($asisten) => $asisten->user?->jenis_kelamin === 'P')
+            ->count();
+
+        $totalKelompok = Kelompok::where('praktikum_id', $praktikum->id)->count();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Total kelompok per prodi
+        |--------------------------------------------------------------------------
+        | Karena tabel kelompoks belum punya kolom prodi, jumlah kelompok per prodi
+        | dihitung dari prodi praktikan yang sudah masuk ke kelompok.
+        */
         $kelompokPerProdi = $praktikanList
             ->filter(fn ($praktikan) => $praktikan->user?->prodi && $praktikan->kelompok_id)
             ->groupBy(fn ($praktikan) => $praktikan->user->prodi)
             ->map(fn ($items) => $items->pluck('kelompok_id')->unique()->count())
             ->sortKeys();
-
-        $totalKelompok = Kelompok::where('praktikum_id', $praktikum->id)->count();
 
         $totalPertemuan = Modul::where('praktikum_id', $praktikum->id)->count();
 
