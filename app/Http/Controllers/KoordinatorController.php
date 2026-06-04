@@ -94,6 +94,12 @@ class KoordinatorController extends Controller
     {
         $this->pastikanKoordinator();
 
+        $tahunAkademikOptions = Praktikum::whereNotNull('tahun_akademik')
+            ->select('tahun_akademik')
+            ->distinct()
+            ->orderByDesc('tahun_akademik')
+            ->pluck('tahun_akademik');
+
         $query = Praktikum::query();
 
         if ($request->filled('search')) {
@@ -107,13 +113,20 @@ class KoordinatorController extends Controller
             });
         }
 
+        if ($request->filled('tahun_akademik')) {
+            $query->where('tahun_akademik', $request->tahun_akademik);
+        }
+
         $praktikums = $query
             ->orderByDesc('is_aktif')
             ->latest()
             ->paginate(10)
             ->withQueryString();
 
-        return view('koordinator.periode', compact('praktikums'));
+        return view('koordinator.periode', compact(
+            'praktikums',
+            'tahunAkademikOptions'
+        ));
     }
 
     public function storePeriode(Request $request): RedirectResponse
@@ -121,11 +134,13 @@ class KoordinatorController extends Controller
         $this->pastikanKoordinator();
 
         $request->validate([
-            'nama' => ['required', 'string', 'max:255'],
-            'jenis_praktikum' => ['required', 'string', 'max:100'],
-            'tahun_akademik' => ['required', 'string', 'max:50'],
-            'semester' => ['required', 'string', 'max:50'],
+            'nama' => ['required', 'in:Praktikum Fisika Dasar 1,Praktikum Fisika Dasar 2'],
+            'jenis_praktikum' => ['required', 'in:fisdas_1,fisdas_2'],
+            'tahun_akademik' => ['required', 'regex:/^\d{4}\/\d{4}$/'],
+            'semester' => ['required', 'in:Ganjil,Genap'],
             'is_aktif' => ['nullable', 'boolean'],
+        ], [
+            'tahun_akademik.regex' => 'Format tahun akademik harus menggunakan slash, contoh: 2025/2026.',
         ]);
 
         if ($request->boolean('is_aktif')) {

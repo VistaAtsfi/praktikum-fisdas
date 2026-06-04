@@ -378,7 +378,7 @@ class AsistenController extends Controller
                 ->latest();
         }
 
-        $materis = $query->paginate(8)->withQueryString();
+        $materis = $query->paginate(10)->withQueryString();
 
         return view('asisten.materi', compact(
             'asisten',

@@ -47,6 +47,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/praktikan/materi', [PraktikanAreaController::class, 'materi'])
             ->name('praktikan.materi');
 
+        Route::get('/praktikan/materi/{materi}/download', [PraktikanAreaController::class, 'downloadMateri'])
+            ->name('praktikan.materi.download');
+
         Route::get('/praktikan/jadwal', [PraktikanAreaController::class, 'jadwal'])
             ->name('praktikan.jadwal');
 

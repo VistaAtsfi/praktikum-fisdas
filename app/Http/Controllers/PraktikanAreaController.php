@@ -132,7 +132,7 @@ class PraktikanAreaController extends Controller
                 ->latest();
         }
 
-        $materis = $query->paginate(8)->withQueryString();
+        $materis = $query->paginate(10)->withQueryString();
 
         return view('praktikan.materi', compact(
             'praktikan',
