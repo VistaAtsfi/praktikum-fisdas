@@ -19,7 +19,19 @@ Route::middleware('guest')->group(function () {
     Route::post('register', [RegisteredUserController::class, 'store']);
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
-        ->name('login');
+    ->name('login');
+
+    Route::get('login/praktikan', [AuthenticatedSessionController::class, 'create'])
+        ->defaults('role', 'praktikan')
+        ->name('login.praktikan');
+
+    Route::get('login/asisten', [AuthenticatedSessionController::class, 'create'])
+        ->defaults('role', 'asisten')
+        ->name('login.asisten');
+
+    Route::get('login/koordinator', [AuthenticatedSessionController::class, 'create'])
+        ->defaults('role', 'koordinator')
+        ->name('login.koordinator');
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 

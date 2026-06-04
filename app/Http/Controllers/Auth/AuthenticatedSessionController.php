@@ -14,9 +14,11 @@ class AuthenticatedSessionController extends Controller
     /**
      * Tampilkan halaman login.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('auth.login');
+        $loginRole = $request->route('role');
+
+        return view('auth.login', compact('loginRole'));
     }
 
     /**

@@ -252,7 +252,7 @@
                     </p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-                        <a href="{{ route('login', ['role' => 'praktikan']) }}"
+                        <a href="{{ route('login.praktikan') }}"
                         class="block text-center py-3 rounded-2xl bg-blue-700 text-white font-bold hover:bg-blue-800 transition">
                             Login
                         </a>
@@ -290,7 +290,7 @@
                         praktikan, dan input nilai praktikum.
                     </p>
 
-                    <a href="{{ route('login', ['role' => 'asisten']) }}"
+                    <a href="{{ route('login.asisten') }}"
                     class="block text-center w-full py-3 rounded-2xl bg-cyan-600 text-white font-bold hover:bg-cyan-700 transition">
                         Login Asisten
                     </a>
@@ -315,7 +315,7 @@
                         praktikan, modul, materi, dan rekap nilai.
                     </p>
 
-                    <a href="{{ route('login', ['role' => 'koordinator']) }}"
+                    <a href="{{ route('login.koordinator') }}"
                     class="block text-center w-full py-3 rounded-2xl bg-indigo-700 text-white font-bold hover:bg-indigo-800 transition">
                         Login Koordinator
                     </a>
