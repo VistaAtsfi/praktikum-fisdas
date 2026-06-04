@@ -334,7 +334,7 @@ class KoordinatorController extends Controller
 
         $materis = $query
             ->latest()
-            ->paginate(8)
+            ->paginate(10)
             ->withQueryString();
 
         return view('koordinator.materi', compact(
@@ -351,19 +351,32 @@ class KoordinatorController extends Controller
 
         $request->validate([
             'praktikum_id' => ['required', 'exists:praktikums,id'],
-            'modul_id' => ['nullable', 'exists:moduls,id'],
+            'nama_modul' => ['nullable', 'string', 'max:255'],
             'judul' => ['required', 'string', 'max:255'],
             'deskripsi' => ['nullable', 'string'],
             'link' => ['nullable', 'string', 'max:500'],
         ]);
 
-        Materi::create($request->only([
-            'praktikum_id',
-            'modul_id',
-            'judul',
-            'deskripsi',
-            'link',
-        ]));
+        $modulId = null;
+
+        if ($request->filled('nama_modul')) {
+            $modul = Modul::firstOrCreate(
+                [
+                    'praktikum_id' => $request->praktikum_id,
+                    'nama_modul' => trim($request->nama_modul),
+                ]
+            );
+
+            $modulId = $modul->id;
+        }
+
+        Materi::create([
+            'praktikum_id' => $request->praktikum_id,
+            'modul_id' => $modulId,
+            'judul' => $request->judul,
+            'deskripsi' => $request->deskripsi,
+            'link' => $request->link,
+        ]);
 
         return back()->with('status', 'Materi berhasil ditambahkan.');
     }
