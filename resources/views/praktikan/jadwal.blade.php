@@ -38,9 +38,9 @@
         </div>
 
         <div class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6 text-center">
-            <p class="text-sm text-slate-500">Asisten</p>
+            <p class="text-sm text-slate-500">Asisten Pemeriksa</p>
             <h3 class="text-xl font-extrabold text-slate-900 mt-2">
-                {{ $asisten->user->name ?? 'Belum ditentukan' }}
+                Per Modul
             </h3>
         </div>
     </section>
@@ -51,6 +51,7 @@
             <h2 class="text-2xl font-extrabold text-slate-900">
                 Pembagian Modul dan Sesi Praktikum
             </h2>
+
             <p class="text-slate-500 mt-1">
                 Modul dan sesi praktikum disesuaikan berdasarkan program studi.
             </p>
@@ -58,39 +59,43 @@
 
         <div class="p-6 overflow-x-auto">
             @if (isset($jadwalModulSesi) && count($jadwalModulSesi) > 0)
-                <table class="w-full min-w-[1100px] text-sm border border-slate-200">
+                <table class="w-full min-w-[1100px] text-sm">
                     <thead>
-                        <tr class="bg-orange-300 text-slate-900">
-                            <th class="border border-slate-300 p-3 text-center font-extrabold">
+                        <tr class="bg-slate-100 text-slate-700">
+                            <th class="p-3 text-center rounded-l-xl">
                                 Waktu
                             </th>
 
                             @foreach ($moduls as $modul)
-                                <th class="border border-slate-300 p-3 text-center font-extrabold whitespace-nowrap">
-                                    {{ $modul->nama_modul }}
+                                <th class="p-3 text-center whitespace-nowrap {{ $loop->last ? 'rounded-r-xl' : '' }}">
+                                    Modul {{ $loop->iteration }}
                                 </th>
                             @endforeach
                         </tr>
                     </thead>
 
-                    <tbody>
+                    <tbody class="divide-y divide-slate-100">
                         @foreach ($jadwalModulSesi as $minggu => $jadwals)
                             <tr>
                                 <td colspan="{{ $moduls->count() + 1 }}"
-                                    class="border border-slate-300 bg-slate-50 p-2 text-center font-extrabold">
+                                    class="p-3 text-center font-extrabold text-blue-700 bg-blue-50">
                                     {{ $minggu }}
                                 </td>
                             </tr>
 
                             @foreach ($jadwals as $jadwal)
-                                <tr>
-                                    <td class="border border-slate-300 bg-orange-200 p-3 text-center font-bold whitespace-nowrap">
+                                <tr class="hover:bg-blue-50/40 transition">
+                                    <td class="p-3 text-center font-bold text-slate-900 whitespace-nowrap">
                                         {{ $jadwal->waktu ?? '-' }}
                                     </td>
 
                                     @foreach ($moduls as $modul)
-                                        <td class="border border-slate-300 p-3 text-center whitespace-nowrap">
-                                            {{ $jadwal->{'modul_' . $modul->urutan} ?? '-' }}
+                                        @php
+                                            $nomorModul = $loop->iteration;
+                                        @endphp
+
+                                        <td class="p-3 text-center whitespace-nowrap">
+                                            {{ data_get($jadwal, 'modul_' . $nomorModul, '-') }}
                                         </td>
                                     @endforeach
                                 </tr>
@@ -120,6 +125,7 @@
             <h2 class="text-2xl font-extrabold text-slate-900">
                 Asisten Pemeriksa Laporan Praktikum
             </h2>
+
             <p class="text-slate-500 mt-1">
                 Data asisten pemeriksa laporan disesuaikan berdasarkan kelompok dan modul.
             </p>
@@ -127,38 +133,45 @@
 
         <div class="p-6 overflow-x-auto">
             @if (isset($asistenPemeriksa) && count($asistenPemeriksa) > 0)
-                <table class="w-full min-w-[1100px] text-sm border border-slate-200">
+                <table class="w-full min-w-[1100px] text-sm">
                     <thead>
-                        <tr class="bg-orange-500 text-white">
-                            <th rowspan="2" class="border border-orange-600 p-3 text-center font-extrabold">
+                        <tr class="bg-slate-100 text-slate-700">
+                            <th rowspan="2" class="p-3 text-center rounded-l-xl">
                                 Kelompok
                             </th>
 
-                            <th colspan="{{ $moduls->count() }}"
-                                class="border border-orange-600 p-3 text-center font-extrabold">
+                            <th colspan="{{ max($moduls->count(), 1) }}" class="p-3 text-center rounded-r-xl">
                                 Asisten Pemeriksa
                             </th>
                         </tr>
 
-                        <tr class="bg-orange-400 text-slate-900">
-                            @foreach ($moduls as $modul)
-                                <th class="border border-orange-600 p-3 text-center font-extrabold whitespace-nowrap">
-                                    {{ $modul->nama_modul }}
+                        <tr class="bg-slate-50 text-slate-700 border-t border-slate-200">
+                            @forelse ($moduls as $modul)
+                                <th class="p-3 text-center whitespace-nowrap">
+                                    Modul {{ $loop->iteration }}
                                 </th>
-                            @endforeach
+                            @empty
+                                <th class="p-3 text-center">
+                                    Modul
+                                </th>
+                            @endforelse
                         </tr>
                     </thead>
 
-                    <tbody>
+                    <tbody class="divide-y divide-slate-100">
                         @foreach ($asistenPemeriksa as $item)
-                            <tr>
-                                <td class="border border-slate-300 bg-orange-200 p-3 text-center font-bold whitespace-nowrap">
+                            <tr class="hover:bg-blue-50/40 transition">
+                                <td class="p-3 text-center font-bold text-slate-900 whitespace-nowrap">
                                     {{ $item->kelompok ?? '-' }}
                                 </td>
 
                                 @foreach ($moduls as $modul)
-                                    <td class="border border-slate-300 p-3 text-center whitespace-nowrap">
-                                        {{ $item->{'modul_' . $modul->urutan} ?? '-' }}
+                                    @php
+                                        $nomorModul = $loop->iteration;
+                                    @endphp
+
+                                    <td class="p-3 text-center whitespace-nowrap">
+                                        {{ data_get($item, 'modul_' . $nomorModul, '-') }}
                                     </td>
                                 @endforeach
                             </tr>
@@ -191,42 +204,42 @@
 
         <div class="p-6 overflow-x-auto">
             @if (!empty($jadwalLaporan) && count($jadwalLaporan) > 0)
-                <table class="w-full min-w-[900px] text-sm border border-slate-200">
+                <table class="w-full min-w-[900px] text-sm">
                     <thead>
-                        <tr class="bg-orange-300 text-slate-900">
-                            <th class="border border-slate-300 p-3 text-center font-extrabold">Jam</th>
-                            <th class="border border-slate-300 p-3 text-center font-extrabold">Senin</th>
-                            <th class="border border-slate-300 p-3 text-center font-extrabold">Selasa</th>
-                            <th class="border border-slate-300 p-3 text-center font-extrabold">Rabu</th>
-                            <th class="border border-slate-300 p-3 text-center font-extrabold">Kamis</th>
-                            <th class="border border-slate-300 p-3 text-center font-extrabold">Jumat</th>
+                        <tr class="bg-slate-100 text-slate-700">
+                            <th class="p-3 text-center rounded-l-xl">Jam</th>
+                            <th class="p-3 text-center">Senin</th>
+                            <th class="p-3 text-center">Selasa</th>
+                            <th class="p-3 text-center">Rabu</th>
+                            <th class="p-3 text-center">Kamis</th>
+                            <th class="p-3 text-center rounded-r-xl">Jumat</th>
                         </tr>
                     </thead>
 
-                    <tbody>
+                    <tbody class="divide-y divide-slate-100">
                         @foreach ($jadwalLaporan as $jadwal)
-                            <tr>
-                                <td class="border border-slate-300 bg-orange-200 p-4 text-center font-bold whitespace-nowrap">
+                            <tr class="hover:bg-blue-50/40 transition">
+                                <td class="p-4 text-center font-bold text-slate-900 whitespace-nowrap">
                                     {{ $jadwal->jam ?? '-' }}
                                 </td>
 
-                                <td class="border border-slate-300 p-4 text-center font-bold {{ !empty($jadwal->senin) ? 'bg-green-200' : '' }}">
+                                <td class="p-4 text-center font-semibold {{ !empty($jadwal->senin) ? 'bg-blue-50 text-blue-700' : '' }}">
                                     {{ $jadwal->senin ?? '' }}
                                 </td>
 
-                                <td class="border border-slate-300 p-4 text-center font-bold {{ !empty($jadwal->selasa) ? 'bg-green-200' : '' }}">
+                                <td class="p-4 text-center font-semibold {{ !empty($jadwal->selasa) ? 'bg-blue-50 text-blue-700' : '' }}">
                                     {{ $jadwal->selasa ?? '' }}
                                 </td>
 
-                                <td class="border border-slate-300 p-4 text-center font-bold {{ !empty($jadwal->rabu) ? 'bg-green-200' : '' }}">
+                                <td class="p-4 text-center font-semibold {{ !empty($jadwal->rabu) ? 'bg-blue-50 text-blue-700' : '' }}">
                                     {{ $jadwal->rabu ?? '' }}
                                 </td>
 
-                                <td class="border border-slate-300 p-4 text-center font-bold {{ !empty($jadwal->kamis) ? 'bg-green-200' : '' }}">
+                                <td class="p-4 text-center font-semibold {{ !empty($jadwal->kamis) ? 'bg-blue-50 text-blue-700' : '' }}">
                                     {{ $jadwal->kamis ?? '' }}
                                 </td>
 
-                                <td class="border border-slate-300 p-4 text-center font-bold {{ !empty($jadwal->jumat) ? 'bg-yellow-300' : '' }}">
+                                <td class="p-4 text-center font-semibold {{ !empty($jadwal->jumat) ? 'bg-blue-50 text-blue-700' : '' }}">
                                     {{ $jadwal->jumat ?? '' }}
                                 </td>
                             </tr>

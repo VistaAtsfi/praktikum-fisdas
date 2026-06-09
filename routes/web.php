@@ -154,6 +154,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/koordinator/kelompok', [KoordinatorController::class, 'storeKelompok'])
             ->name('koordinator.kelompok.store');
 
+        Route::post('/koordinator/kelompok/asisten-pemeriksa', [KoordinatorController::class, 'storeAsistenPemeriksa'])
+            ->name('koordinator.kelompok.asisten-pemeriksa.store');
+
         Route::get('/koordinator/kelompok/{kelompok}', [KoordinatorController::class, 'kelompokDetail'])
             ->name('koordinator.kelompok.show');
 

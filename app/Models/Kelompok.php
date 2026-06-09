@@ -13,6 +13,7 @@ class Kelompok extends Model
         'praktikum_id',
         'nama_kelompok',
         'sesi',
+        'prodi',
     ];
 
     public function praktikum()
@@ -23,5 +24,10 @@ class Kelompok extends Model
     public function praktikans()
     {
         return $this->hasMany(Praktikan::class);
+    }
+
+    public function asistenPemeriksaLaporans()
+    {
+        return $this->hasMany(AsistenPemeriksaLaporan::class);
     }
 }
