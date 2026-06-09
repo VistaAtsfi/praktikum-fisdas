@@ -26,9 +26,11 @@
             <div class="relative w-full max-w-md">
                 <!-- Logo / Header -->
                 <div class="text-center mb-8">
-                    <a href="/" class="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-white text-blue-800 text-3xl shadow-xl mb-4">
-                        ⚛
-                    </a>
+                    <div class="mx-auto w-20 h-20 rounded-3xl bg-white flex items-center justify-center shadow-lg overflow-hidden">
+                        <img src="{{ asset('assets/images/LogoUnmul.svg') }}"
+                            alt="Logo Universitas Mulawarman"
+                            class="w-14 h-14 object-contain">
+                    </div>
 
                     <h1 class="text-2xl font-extrabold text-white">
                         Praktikum Fisika Dasar

@@ -29,12 +29,6 @@
     @endphp
 
     <div class="mb-7 text-center">
-        <div class="w-20 h-20 rounded-3xl bg-blue-100 flex items-center justify-center overflow-hidden">
-            <img src="{{ asset('assets/images/LogoUnmul.svg') }}"
-                alt="Logo Universitas Mulawarman"
-                class="w-12 h-12 object-contain">
-        </div>
-
         <h2 class="text-2xl font-extrabold text-slate-900">
             {{ $judulLogin }}
         </h2>
