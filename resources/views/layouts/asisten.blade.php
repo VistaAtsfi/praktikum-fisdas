@@ -33,8 +33,10 @@
 
             <div class="h-20 px-6 flex items-center justify-between border-b border-blue-100">
                 <a href="{{ route('dashboard.asisten') }}" class="flex items-center gap-3">
-                    <div class="w-11 h-11 rounded-2xl bg-blue-700 text-white flex items-center justify-center text-xl shadow">
-                        ⚛
+                    <div class="w-10 h-10 rounded-2xl bg-white flex items-center justify-center overflow-hidden shadow-sm">
+                        <img src="{{ asset('assets/images/LogoUnmul.svg') }}"
+                            alt="Logo Universitas Mulawarman"
+                            class="w-8 h-8 object-contain">
                     </div>
 
                     <div>

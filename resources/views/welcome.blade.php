@@ -76,8 +76,10 @@
     <header class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-blue-100">
         <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
             <a href="/" class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-2xl bg-blue-700 text-white flex items-center justify-center shadow-md">
-                    ⚛
+                <div class="w-11 h-11 rounded-2xl bg-white flex items-center justify-center shadow-md overflow-hidden">
+                    <img src="{{ asset('assets/images/LogoUnmul.svg') }}"
+                        alt="Logo Universitas Mulawarman"
+                        class="w-9 h-9 object-contain">
                 </div>
 
                 <div>
@@ -137,16 +139,16 @@
         <div class="relative max-w-7xl mx-auto px-6 py-12 md:py-16 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             <div>
                 <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-sm mb-6">
-                    <span>⚛</span>
                     <span>Portal Sistem Praktikum Fisika Dasar FT UNMUL</span>
                 </div>
 
                 <h2 class="text-4xl md:text-5xl font-extrabold leading-tight mb-5">
-                    Praktikum Fisika Dasar Berbasis Web
+                    Praktikum Fisika Dasar <br>
+                    FT UNMUL
                 </h2>
 
                 <p class="text-blue-100 text-base md:text-lg leading-relaxed mb-7">
-                    Sistem informasi praktikum untuk pengelolaan data praktikan,
+                    Sistem praktikum untuk pengelolaan data praktikan,
                     presensi QR, penilaian, materi, serta informasi K3 dan SOP praktikum.
                 </p>
 
@@ -542,8 +544,10 @@
             <div class="flex flex-col md:flex-row justify-between gap-6">
                 <div>
                     <div class="flex items-center gap-3 mb-4">
-                        <div class="w-11 h-11 rounded-2xl bg-white text-blue-800 flex items-center justify-center text-2xl">
-                            ⚛
+                        <div class="w-11 h-11 rounded-2xl bg-white flex items-center justify-center overflow-hidden">
+                            <img src="{{ asset('assets/images/LogoUnmul.svg') }}"
+                                alt="Logo Universitas Mulawarman"
+                                class="w-9 h-9 object-contain">
                         </div>
 
                         <div>
