@@ -642,7 +642,19 @@ class KoordinatorController extends Controller
         $praktikums = Praktikum::latest()->get();
         $praktikumId = $request->praktikum_id ?? $this->praktikumAktif()?->id;
 
-        $query = Presensi::with(['praktikum', 'praktikan.user', 'modul', 'asisten.user']);
+        $kelompoks = $praktikumId
+            ? Kelompok::where('praktikum_id', $praktikumId)
+                ->orderBy('id')
+                ->get()
+            : collect();
+
+        $sesis = $kelompoks
+            ->pluck('sesi')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $query = Presensi::with(['praktikum', 'praktikan.user', 'praktikan.kelompok', 'modul', 'asisten.user']);
 
         if ($praktikumId) {
             $query->where('praktikum_id', $praktikumId);
@@ -652,6 +664,31 @@ class KoordinatorController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('kelompok_id')) {
+            $kelompok = Kelompok::where('praktikum_id', $praktikumId)
+                ->find($request->kelompok_id);
+
+            if ($kelompok) {
+                $query->where(function ($q) use ($kelompok) {
+                    $q->where('kelompok', $kelompok->nama_kelompok)
+                        ->orWhereHas('praktikan', function ($praktikanQuery) use ($kelompok) {
+                            $praktikanQuery->where('kelompok_id', $kelompok->id);
+                        });
+                });
+            }
+        }
+
+        if ($request->filled('sesi')) {
+            $sesi = $request->sesi;
+
+            $query->where(function ($q) use ($sesi) {
+                $q->where('sesi', $sesi)
+                    ->orWhereHas('praktikan.kelompok', function ($kelompokQuery) use ($sesi) {
+                        $kelompokQuery->where('sesi', $sesi);
+                    });
+            });
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
 
@@ -659,7 +696,13 @@ class KoordinatorController extends Controller
                 $q->where('nim', 'like', "%{$search}%")
                     ->orWhere('nama', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('kelompok', 'like', "%{$search}%");
+                    ->orWhere('kelompok', 'like', "%{$search}%")
+                    ->orWhere('sesi', 'like', "%{$search}%")
+                    ->orWhereHas('praktikan.user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('nim', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -671,7 +714,9 @@ class KoordinatorController extends Controller
         return view('koordinator.presensi', compact(
             'praktikums',
             'praktikumId',
-            'presensis'
+            'presensis',
+            'kelompoks',
+            'sesis'
         ));
     }
 
