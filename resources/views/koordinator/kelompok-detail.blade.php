@@ -131,52 +131,62 @@
 
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
         <div class="p-6 border-b border-blue-100">
-            <h2 class="text-2xl font-extrabold text-slate-900">
-                Asisten Pemeriksa per Modul
-            </h2>
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-extrabold text-slate-900">
+                        Asisten Pemeriksa per Modul
+                    </h2>
 
-            <p class="text-slate-500 mt-1">
-                Asisten pemeriksa diatur berdasarkan modul pada kelompok ini.
-            </p>
+                    <p class="text-slate-500 mt-1">
+                        Pilih asisten pemeriksa untuk setiap modul, lalu klik tombol simpan.
+                    </p>
+                </div>
+            </div>
         </div>
 
-        <div class="p-6 overflow-x-auto">
-            <table class="w-full min-w-[700px] text-sm">
-                <thead>
-                    <tr class="bg-slate-100 text-slate-700">
-                        <th class="p-3 text-center rounded-l-xl">Modul</th>
-                        <th class="p-3 text-center">Nama Modul</th>
-                        <th class="p-3 text-center rounded-r-xl">Asisten Pemeriksa</th>
-                    </tr>
-                </thead>
+        <form method="POST" action="{{ route('koordinator.kelompok.asisten-pemeriksa.store') }}">
+            @csrf
 
-                <tbody class="divide-y divide-slate-100">
-                    @forelse ($moduls as $modul)
-                        @php
-                            $selectedAsisten = $asistenPemeriksaMap[$modul->id] ?? null;
-                        @endphp
+            <input type="hidden" name="praktikum_id" value="{{ $kelompok->praktikum_id }}">
+            <input type="hidden" name="kelompok_id" value="{{ $kelompok->id }}">
 
-                        <tr class="hover:bg-blue-50/40 transition">
-                            <td class="p-3 text-center font-bold text-slate-900 whitespace-nowrap">
-                                Modul {{ $loop->iteration }}
-                            </td>
+            <div class="p-6 overflow-x-auto">
+                <table class="w-full min-w-[700px] text-sm">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700">
+                            <th class="p-3 text-center rounded-l-xl">
+                                Modul
+                            </th>
 
-                            <td class="p-3 text-center">
-                                {{ $modul->nama_modul }}
-                            </td>
+                            <th class="p-3 text-center">
+                                Nama Modul
+                            </th>
 
-                            <td class="p-3">
-                                <form method="POST" action="{{ route('koordinator.kelompok.asisten-pemeriksa.store') }}">
-                                    @csrf
+                            <th class="p-3 text-center rounded-r-xl">
+                                Asisten Pemeriksa
+                            </th>
+                        </tr>
+                    </thead>
 
-                                    <input type="hidden" name="praktikum_id" value="{{ $kelompok->praktikum_id }}">
-                                    <input type="hidden" name="kelompok_id" value="{{ $kelompok->id }}">
-                                    <input type="hidden" name="modul_id" value="{{ $modul->id }}">
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse ($moduls as $modul)
+                            @php
+                                $selectedAsisten = $asistenPemeriksaMap[$modul->id] ?? null;
+                            @endphp
 
-                                    <select name="asisten_id"
-                                            onchange="this.form.submit()"
-                                            class="w-full rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
-                                        <option value="">-</option>
+                            <tr class="hover:bg-blue-50/40 transition">
+                                <td class="p-3 text-center font-extrabold text-slate-900">
+                                    Modul {{ $loop->iteration }}
+                                </td>
+
+                                <td class="p-3 text-center text-slate-700">
+                                    {{ $modul->nama_modul }}
+                                </td>
+
+                                <td class="p-3">
+                                    <select name="asisten_pemeriksa[{{ $modul->id }}]"
+                                            class="w-full rounded-2xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="">Belum dipilih</option>
 
                                         @foreach ($asistensAktif as $asisten)
                                             <option value="{{ $asisten->id }}" @selected($selectedAsisten == $asisten->id)>
@@ -184,76 +194,106 @@
                                             </option>
                                         @endforeach
                                     </select>
-                                </form>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="3" class="p-5 text-center text-slate-500">
-                                Modul belum tersedia.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="p-5 text-center text-slate-500">
+                                    Modul belum tersedia.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+
+                @if ($asistensAktif->isEmpty())
+                    <div class="mt-5 rounded-2xl bg-yellow-50 border border-yellow-100 p-4 text-yellow-700 font-semibold">
+                        Belum ada asisten aktif pada periode ini. Tambahkan asisten aktif terlebih dahulu di menu Data Asisten.
+                    </div>
+                @endif
+
+                <div class="mt-6 flex justify-end">
+                    <button type="submit"
+                            class="px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
+                        Simpan Asisten Pemeriksa
+                    </button>
+                </div>
+            </div>
+        </form>
     </section>
 
+    {{-- Anggota Kelompok --}}
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
         <div class="p-6 border-b border-blue-100">
             <h2 class="text-2xl font-extrabold text-slate-900">
                 Anggota Kelompok
             </h2>
+
+            <p class="text-slate-500 mt-1">
+                Data praktikan yang tergabung dalam kelompok ini.
+            </p>
         </div>
 
-        <div class="p-6 overflow-x-auto">
-            <table class="w-full min-w-[900px] text-sm">
-                <thead>
-                    <tr class="bg-slate-100 text-slate-700">
-                        <th class="p-3 text-center rounded-l-xl">No.</th>
-                        <th class="p-3 text-center">NIM</th>
-                        <th class="p-3 text-center">Nama</th>
-                        <th class="p-3 text-center">Prodi</th>
-                        <th class="p-3 text-center rounded-r-xl">Jenis Kelamin</th>
-                    </tr>
-                </thead>
-
-                <tbody class="divide-y divide-slate-100">
-                    @forelse ($kelompok->praktikans->sortBy('user.nim')->values() as $praktikan)
-                        <tr class="hover:bg-blue-50/40 transition">
-                            <td class="p-3 text-center">
-                                {{ $loop->iteration }}
-                            </td>
-
-                            <td class="p-3 text-center whitespace-nowrap">
-                                {{ $praktikan->user->nim ?? '-' }}
-                            </td>
-
-                            <td class="p-3 font-semibold text-slate-900">
-                                {{ $praktikan->user->name ?? '-' }}
-                            </td>
-
-                            <td class="p-3 text-center">
-                                {{ $praktikan->user->prodi ?? '-' }}
-                            </td>
-
-                            <td class="p-3 text-center">
-                                {{ match ($praktikan->user->jenis_kelamin ?? null) {
-                                    'L' => 'Laki-laki',
-                                    'P' => 'Perempuan',
-                                    default => '-',
-                                } }}
-                            </td>
+        <div class="p-6">
+            <div class="max-w-full overflow-x-auto">
+                <table class="w-full min-w-[1000px] text-sm">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700">
+                            <th class="p-3 text-center rounded-l-xl">No.</th>
+                            <th class="p-3 text-center">NIM</th>
+                            <th class="p-3 text-center">Nama</th>
+                            <th class="p-3 text-center">Email</th>
+                            <th class="p-3 text-center">Nomor Ponsel</th>
+                            <th class="p-3 text-center">Program Studi</th>
+                            <th class="p-3 text-center rounded-r-xl">Jenis Kelamin</th>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="p-5 text-center text-slate-500">
-                                Belum ada praktikan pada kelompok ini.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    </thead>
+
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse ($kelompok->praktikans->sortBy('user.nim')->values() as $praktikan)
+                            <tr class="hover:bg-blue-50/40 transition">
+                                <td class="p-3 text-center">
+                                    {{ $loop->iteration }}
+                                </td>
+
+                                <td class="p-3 text-center whitespace-nowrap font-semibold">
+                                    {{ $praktikan->user->nim ?? '-' }}
+                                </td>
+
+                                <td class="p-3 text-center font-bold text-slate-900">
+                                    {{ $praktikan->user->name ?? '-' }}
+                                </td>
+
+                                <td class="p-3 text-center whitespace-nowrap">
+                                    {{ $praktikan->user->email ?? '-' }}
+                                </td>
+
+                                <td class="p-3 text-center whitespace-nowrap">
+                                    {{ $praktikan->user->nomor_ponsel ?? '-' }}
+                                </td>
+
+                                <td class="p-3 text-center">
+                                    {{ $praktikan->user->prodi ?? '-' }}
+                                </td>
+
+                                <td class="p-3 text-center">
+                                    {{ match ($praktikan->user->jenis_kelamin ?? null) {
+                                        'L' => 'Laki-laki',
+                                        'P' => 'Perempuan',
+                                        default => '-',
+                                    } }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="p-5 text-center text-slate-500">
+                                    Belum ada praktikan pada kelompok ini.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
     </section>
 

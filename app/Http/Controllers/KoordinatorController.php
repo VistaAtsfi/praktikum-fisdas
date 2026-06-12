@@ -813,45 +813,89 @@ class KoordinatorController extends Controller
         $request->validate([
             'praktikum_id' => ['required', 'exists:praktikums,id'],
             'kelompok_id' => ['required', 'exists:kelompoks,id'],
-            'asisten_pemeriksa' => ['nullable', 'array'],
-            'asisten_pemeriksa.*' => ['nullable', 'exists:asistens,id'],
         ]);
 
         $kelompok = Kelompok::where('praktikum_id', $request->praktikum_id)
             ->findOrFail($request->kelompok_id);
 
-        $asistenPemeriksa = $request->input('asisten_pemeriksa', []);
+        /*
+        |--------------------------------------------------------------------------
+        | Simpan banyak modul sekaligus
+        |--------------------------------------------------------------------------
+        | Dipakai untuk halaman detail kelompok dan tabel kelompok.
+        */
+        if ($request->has('asisten_pemeriksa')) {
+            $request->validate([
+                'asisten_pemeriksa' => ['nullable', 'array'],
+                'asisten_pemeriksa.*' => ['nullable', 'exists:asistens,id'],
+            ]);
 
-        foreach ($asistenPemeriksa as $modulId => $asistenId) {
-            $modul = Modul::where('praktikum_id', $request->praktikum_id)
-                ->find($modulId);
+            foreach ($request->input('asisten_pemeriksa', []) as $modulId => $asistenId) {
+                $modul = Modul::where('praktikum_id', $request->praktikum_id)
+                    ->findOrFail($modulId);
 
-            if (!$modul) {
-                continue;
+                if (!empty($asistenId)) {
+                    Asisten::where('praktikum_id', $request->praktikum_id)
+                        ->where('status', 'aktif')
+                        ->findOrFail($asistenId);
+
+                    AsistenPemeriksaLaporan::updateOrCreate(
+                        [
+                            'praktikum_id' => $request->praktikum_id,
+                            'kelompok_id' => $kelompok->id,
+                            'modul_id' => $modul->id,
+                        ],
+                        [
+                            'asisten_id' => $asistenId,
+                            'prodi' => $kelompok->prodi,
+                        ]
+                    );
+                } else {
+                    AsistenPemeriksaLaporan::where('praktikum_id', $request->praktikum_id)
+                        ->where('kelompok_id', $kelompok->id)
+                        ->where('modul_id', $modul->id)
+                        ->delete();
+                }
             }
 
-            if ($asistenId) {
-                $asisten = Asisten::where('praktikum_id', $request->praktikum_id)
-                    ->where('status', 'aktif')
-                    ->findOrFail($asistenId);
+            return back()->with('status', 'Asisten pemeriksa berhasil disimpan.');
+        }
 
-                AsistenPemeriksaLaporan::updateOrCreate(
-                    [
-                        'praktikum_id' => $request->praktikum_id,
-                        'kelompok_id' => $kelompok->id,
-                        'modul_id' => $modul->id,
-                    ],
-                    [
-                        'asisten_id' => $asisten->id,
-                        'prodi' => $kelompok->prodi,
-                    ]
-                );
-            } else {
-                AsistenPemeriksaLaporan::where('praktikum_id', $request->praktikum_id)
-                    ->where('kelompok_id', $kelompok->id)
-                    ->where('modul_id', $modul->id)
-                    ->delete();
-            }
+        /*
+        |--------------------------------------------------------------------------
+        | Simpan satu modul
+        |--------------------------------------------------------------------------
+        | Cadangan jika masih ada form lama yang mengirim modul_id dan asisten_id.
+        */
+        $request->validate([
+            'modul_id' => ['required', 'exists:moduls,id'],
+            'asisten_id' => ['nullable', 'exists:asistens,id'],
+        ]);
+
+        $modul = Modul::where('praktikum_id', $request->praktikum_id)
+            ->findOrFail($request->modul_id);
+
+        if ($request->filled('asisten_id')) {
+            Asisten::where('praktikum_id', $request->praktikum_id)
+                ->where('status', 'aktif')
+                ->findOrFail($request->asisten_id);
+
+            AsistenPemeriksaLaporan::updateOrCreate(
+                [
+                    'praktikum_id' => $request->praktikum_id,
+                    'kelompok_id' => $kelompok->id,
+                    'modul_id' => $modul->id,
+                ],
+                [
+                    'asisten_id' => $request->asisten_id,
+                    'prodi' => $kelompok->prodi,
+                ]
+            );
+        } else {
+            AsistenPemeriksaLaporan::where('praktikum_id', $request->praktikum_id)
+                ->where('kelompok_id', $kelompok->id)
+                ->where('modul_id', $modul->id)
+                ->delete();
         }
 
         return back()->with('status', 'Asisten pemeriksa berhasil disimpan.');
