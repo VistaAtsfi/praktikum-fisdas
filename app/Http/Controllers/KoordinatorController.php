@@ -433,7 +433,9 @@ class KoordinatorController extends Controller
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('nim', 'like', "%{$search}%")
-                    ->orWhere('prodi', 'like', "%{$search}%");
+                    ->orWhere('prodi', 'like', "%{$search}%")
+                    ->orWhere('nomor_ponsel', 'like', "%{$search}%")
+                    ->orWhere('jenis_kelamin', 'like', "%{$search}%");
             });
         }
 
@@ -457,7 +459,7 @@ class KoordinatorController extends Controller
             'praktikum_id' => ['required', 'exists:praktikums,id'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
             'nim' => ['nullable', 'string', 'max:30', 'unique:users,nim'],
             'prodi' => [
                 'required',
