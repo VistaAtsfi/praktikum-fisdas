@@ -166,6 +166,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/koordinator/penilaian', [KoordinatorController::class, 'penilaian'])
             ->name('koordinator.penilaian');
 
+        Route::post('/koordinator/penilaian', [KoordinatorController::class, 'storeKategoriPenilaian'])
+            ->name('koordinator.penilaian.store');
+
+        Route::patch('/koordinator/penilaian/{kategoriPenilaian}', [KoordinatorController::class, 'updateKategoriPenilaian'])
+            ->name('koordinator.penilaian.update');
+
+        Route::delete('/koordinator/penilaian/{kategoriPenilaian}', [KoordinatorController::class, 'deleteKategoriPenilaian'])
+            ->name('koordinator.penilaian.delete');
+
         Route::get('/koordinator/presensi', [KoordinatorController::class, 'presensi'])
             ->name('koordinator.presensi');
 

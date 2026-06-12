@@ -15,6 +15,7 @@ use App\Models\PraktikumProdi;
 use App\Models\Presensi;
 use App\Models\User;
 use App\Models\AsistenPemeriksaLaporan;
+use App\Models\KategoriPenilaian;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -905,7 +906,138 @@ class KoordinatorController extends Controller
     {
         $this->pastikanKoordinator();
 
-        return view('koordinator.penilaian');
+        $this->pastikanKategoriPenilaianDefault();
+
+        $kategoriPenilaians = KategoriPenilaian::query()
+            ->orderBy('urutan')
+            ->orderBy('id')
+            ->get();
+
+        $kategoriAktif = $kategoriPenilaians
+            ->where('is_aktif', true)
+            ->values();
+
+        $totalPersentase = $kategoriAktif
+            ->sum(fn ($kategori) => (float) $kategori->persentase);
+
+        return view('koordinator.penilaian', compact(
+            'kategoriPenilaians',
+            'kategoriAktif',
+            'totalPersentase'
+        ));
+    }
+
+    public function storeKategoriPenilaian(Request $request): RedirectResponse
+    {
+        $this->pastikanKoordinator();
+
+        $request->validate([
+            'tipe_penilaian' => ['required', 'in:afektif,kognitif,psikomotorik'],
+            'nama_subjek' => ['required', 'string', 'max:255'],
+            'persentase' => ['required', 'numeric', 'min:0', 'max:100'],
+            'keterangan' => ['nullable', 'string'],
+            'urutan' => ['required', 'integer', 'min:1'],
+            'is_aktif' => ['nullable', 'boolean'],
+        ]);
+
+        KategoriPenilaian::create([
+            'tipe_penilaian' => $request->tipe_penilaian,
+            'nama_subjek' => $request->nama_subjek,
+            'persentase' => $request->persentase,
+            'keterangan' => $request->keterangan,
+            'urutan' => $request->urutan,
+            'is_aktif' => $request->boolean('is_aktif'),
+        ]);
+
+        return back()->with('status', 'Subjek penilaian berhasil ditambahkan.');
+    }
+
+    public function updateKategoriPenilaian(Request $request, KategoriPenilaian $kategoriPenilaian): RedirectResponse
+    {
+        $this->pastikanKoordinator();
+
+        $request->validate([
+            'tipe_penilaian' => ['required', 'in:afektif,kognitif,psikomotorik'],
+            'nama_subjek' => ['required', 'string', 'max:255'],
+            'persentase' => ['required', 'numeric', 'min:0', 'max:100'],
+            'keterangan' => ['nullable', 'string'],
+            'urutan' => ['required', 'integer', 'min:1'],
+            'is_aktif' => ['nullable', 'boolean'],
+        ]);
+
+        $kategoriPenilaian->update([
+            'tipe_penilaian' => $request->tipe_penilaian,
+            'nama_subjek' => $request->nama_subjek,
+            'persentase' => $request->persentase,
+            'keterangan' => $request->keterangan,
+            'urutan' => $request->urutan,
+            'is_aktif' => $request->boolean('is_aktif'),
+        ]);
+
+        return back()->with('status', 'Subjek penilaian berhasil diperbarui.');
+    }
+
+    public function deleteKategoriPenilaian(KategoriPenilaian $kategoriPenilaian): RedirectResponse
+    {
+        $this->pastikanKoordinator();
+
+        $kategoriPenilaian->delete();
+
+        return back()->with('status', 'Subjek penilaian berhasil dihapus.');
+    }
+
+    private function pastikanKategoriPenilaianDefault(): void
+    {
+        if (KategoriPenilaian::count() > 0) {
+            return;
+        }
+
+        $defaults = [
+            [
+                'tipe_penilaian' => 'afektif',
+                'nama_subjek' => 'Kehadiran',
+                'persentase' => 10,
+                'keterangan' => 'Nilai kehadiran praktikan pada setiap modul praktikum.',
+                'urutan' => 1,
+                'is_aktif' => true,
+            ],
+            [
+                'tipe_penilaian' => 'afektif',
+                'nama_subjek' => 'Laporan',
+                'persentase' => 10,
+                'keterangan' => 'Nilai laporan praktikum yang berasal dari laporan mingguan dan laporan resmi.',
+                'urutan' => 2,
+                'is_aktif' => true,
+            ],
+            [
+                'tipe_penilaian' => 'kognitif',
+                'nama_subjek' => 'Responsi',
+                'persentase' => 10,
+                'keterangan' => 'Nilai responsi praktikan pada setiap modul.',
+                'urutan' => 3,
+                'is_aktif' => true,
+            ],
+            [
+                'tipe_penilaian' => 'kognitif',
+                'nama_subjek' => 'Asistensi',
+                'persentase' => 20,
+                'keterangan' => 'Nilai proses asistensi atau bimbingan laporan praktikum.',
+                'urutan' => 4,
+                'is_aktif' => true,
+            ],
+            [
+                'tipe_penilaian' => 'psikomotorik',
+                'nama_subjek' => 'Kemampuan Praktik',
+                'persentase' => 50,
+                'keterangan' => 'Nilai kemampuan praktik berdasarkan penilaian K1 sampai K4.',
+                'urutan' => 5,
+                'is_aktif' => true,
+            ],
+        ];
+
+        foreach ($defaults as $default) {
+            KategoriPenilaian::create($default);
+        }
     }
 
     public function presensi(Request $request): View

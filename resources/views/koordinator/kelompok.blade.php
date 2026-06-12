@@ -144,13 +144,17 @@
     </section>
 
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
+        {{-- Filter + Pencarian --}}
         <div class="p-6 border-b border-blue-100">
-            <form method="GET" action="{{ route('koordinator.kelompok') }}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+            <form method="GET"
+                action="{{ route('koordinator.kelompok') }}"
+                class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+
                 <input type="text"
-                       name="search"
-                       value="{{ request('search') }}"
-                       placeholder="Cari NIM, nama, kelompok, prodi"
-                       class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Cari NIM, nama, kelompok"
+                    class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
 
                 <select name="praktikum_id"
                         class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
@@ -190,15 +194,14 @@
                     </button>
 
                     <a href="{{ route('koordinator.kelompok') }}"
-                       class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 font-extrabold hover:bg-slate-200 transition text-center">
+                    class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 font-extrabold hover:bg-slate-200 transition text-center">
                         Reset
                     </a>
                 </div>
             </form>
         </div>
-    </section>
 
-    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
+        {{-- Judul Tabel --}}
         <div class="p-6 border-b border-blue-100 text-center">
             <h2 class="text-2xl font-extrabold text-slate-900">
                 Kelompok Praktikum Fisika Dasar {{ request('prodi') ?: 'Semua Program Studi' }}
@@ -209,6 +212,7 @@
             </p>
         </div>
 
+        {{-- Tabel Desktop --}}
         <div class="p-6">
             <div class="hidden md:block">
                 <table class="w-full table-fixed text-sm">
@@ -268,6 +272,7 @@
                 </table>
             </div>
 
+            {{-- Tampilan Mobile --}}
             <div class="md:hidden space-y-4">
                 @forelse ($praktikanRows as $praktikan)
                     <div class="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
@@ -302,6 +307,13 @@
                                 </p>
                             </div>
                         </div>
+
+                        @if ($praktikan->kelompok)
+                            <a href="{{ route('koordinator.kelompok.show', $praktikan->kelompok) }}"
+                            class="mt-4 inline-flex w-full justify-center px-4 py-2 rounded-xl bg-blue-700 text-white font-bold hover:bg-blue-800 transition text-sm">
+                                Detail Kelompok
+                            </a>
+                        @endif
                     </div>
                 @empty
                     <div class="rounded-2xl bg-slate-50 border border-slate-100 p-6 text-center text-slate-500">
