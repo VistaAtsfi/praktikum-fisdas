@@ -16,6 +16,7 @@ use App\Models\Presensi;
 use App\Models\User;
 use App\Models\AsistenPemeriksaLaporan;
 use App\Models\KategoriPenilaian;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -592,7 +593,7 @@ class KoordinatorController extends Controller
         $praktikans = $this->paginateCollectionKoordinator(
             $hasilSort,
             $request,
-            200
+            400
         );
 
         return view('koordinator.praktikan', compact(
@@ -1217,42 +1218,37 @@ class KoordinatorController extends Controller
 
         $praktikums = Praktikum::latest()->get();
         $praktikumId = $request->praktikum_id ?? $this->praktikumAktif()?->id;
+        $sortDirection = $request->sort_direction === 'desc' ? 'desc' : 'asc';
 
-        $query = NilaiAkhir::with(['praktikum', 'praktikan.user', 'praktikan.kelompok']);
+        $prodis = $praktikumId
+            ? Praktikan::with('user')
+                ->where('praktikum_id', $praktikumId)
+                ->get()
+                ->pluck('user.prodi')
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values()
+            : collect();
 
-        if ($praktikumId) {
-            $query->where('praktikum_id', $praktikumId);
-        }
+        $hasilNilaiAkhir = $this->ambilNilaiAkhirTerfilterTersortir(
+            $request,
+            $praktikumId,
+            $sortDirection
+        );
 
-        if ($request->filled('prodi')) {
-            $query->whereHas('praktikan.user', fn ($q) => $q->where('prodi', $request->prodi));
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-
-            $query->whereHas('praktikan.user', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('nim', 'like', "%{$search}%");
-            });
-        }
-
-        $nilaiAkhirs = $query
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
-
-        $prodis = User::where('role', 'praktikan')
-            ->whereNotNull('prodi')
-            ->distinct()
-            ->orderBy('prodi')
-            ->pluck('prodi');
+        $nilaiAkhirs = $this->paginateCollectionKoordinator(
+            $hasilNilaiAkhir,
+            $request,
+            400
+        );
 
         return view('koordinator.nilai-akhir', compact(
             'praktikums',
             'praktikumId',
             'nilaiAkhirs',
-            'prodis'
+            'prodis',
+            'sortDirection'
         ));
     }
 
@@ -1260,60 +1256,93 @@ class KoordinatorController extends Controller
     {
         $this->pastikanKoordinator();
 
-        $praktikumId = $request->praktikum_id ?? $this->praktikumAktif()?->id;
-
-        $query = NilaiAkhir::with(['praktikan.user', 'praktikan.kelompok']);
-
-        if ($praktikumId) {
-            $query->where('praktikum_id', $praktikumId);
+        if (!$request->filled('prodi')) {
+            return back()->withErrors([
+                'prodi' => 'Pilih program studi terlebih dahulu sebelum mengunduh nilai akhir.',
+            ]);
         }
 
-        $rows = $query->get();
+        $praktikumId = $request->praktikum_id ?? $this->praktikumAktif()?->id;
+        $praktikum = Praktikum::find($praktikumId);
+        $sortDirection = $request->sort_direction === 'desc' ? 'desc' : 'asc';
 
-        $filename = 'nilai-akhir-praktikan.csv';
+        $rows = $this->ambilNilaiAkhirTerfilterTersortir(
+            $request,
+            $praktikumId,
+            $sortDirection
+        );
+
+        $safeProdi = preg_replace('/[^A-Za-z0-9\-]+/', '-', strtolower($request->prodi));
+        $filename = 'nilai-akhir-' . $safeProdi . '.csv';
 
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        return Response::stream(function () use ($rows) {
+        return Response::stream(function () use ($rows, $praktikum, $request) {
             $handle = fopen('php://output', 'w');
 
+            fputcsv($handle, ['DAFTAR NILAI AKHIR']);
+            fputcsv($handle, [strtoupper(($praktikum->nama ?? 'Praktikum Fisika Dasar') . ' ' . $request->prodi)]);
+            fputcsv($handle, ['LABORATORIUM LAYANAN DASAR']);
+            fputcsv($handle, ['TAHUN AJARAN ' . strtoupper(($praktikum->semester ?? '-') . ' ' . ($praktikum->tahun_akademik ?? '-'))]);
+            fputcsv($handle, []);
+
             fputcsv($handle, [
+                'No.',
                 'NIM',
                 'Nama',
-                'Prodi',
-                'Kelompok',
-                'Kehadiran',
-                'Laporan',
-                'Responsi',
-                'Asistensi',
-                'Kemampuan Praktik',
                 'Nilai Angka',
-                'Nilai Bobot',
                 'Nilai Huruf',
+                'Status Kelulusan',
             ]);
 
-            foreach ($rows as $nilai) {
+            foreach ($rows as $index => $nilai) {
                 fputcsv($handle, [
+                    $index + 1,
                     $nilai->praktikan->user->nim ?? '-',
                     $nilai->praktikan->user->name ?? '-',
-                    $nilai->praktikan->user->prodi ?? '-',
-                    $nilai->praktikan->kelompok->nama_kelompok ?? '-',
-                    $nilai->kehadiran,
-                    $nilai->laporan,
-                    $nilai->responsi,
-                    $nilai->asistensi,
-                    $nilai->kemampuan_praktik,
-                    $nilai->nilai_angka,
-                    $nilai->nilai_bobot,
-                    $nilai->nilai_huruf,
+                    number_format((float) ($nilai->nilai_angka ?? 0), 2, '.', ''),
+                    $nilai->nilai_huruf ?? '-',
+                    $this->statusKelulusanNilaiAkhir($nilai),
                 ]);
             }
 
             fclose($handle);
         }, 200, $headers);
+    }
+
+    public function exportNilaiAkhirPdf(Request $request)
+    {
+        $this->pastikanKoordinator();
+
+        if (!$request->filled('prodi')) {
+            return back()->withErrors([
+                'prodi' => 'Pilih program studi terlebih dahulu sebelum mengunduh PDF nilai akhir.',
+            ]);
+        }
+
+        $praktikumId = $request->praktikum_id ?? $this->praktikumAktif()?->id;
+        $praktikum = Praktikum::find($praktikumId);
+        $sortDirection = $request->sort_direction === 'desc' ? 'desc' : 'asc';
+
+        $nilaiAkhirs = $this->ambilNilaiAkhirTerfilterTersortir(
+            $request,
+            $praktikumId,
+            $sortDirection
+        );
+
+        $safeProdi = preg_replace('/[^A-Za-z0-9\-]+/', '-', strtolower($request->prodi));
+        $filename = 'nilai-akhir-' . $safeProdi . '.pdf';
+
+        $pdf = Pdf::loadView('koordinator.exports.nilai-akhir-pdf', [
+            'praktikum' => $praktikum,
+            'prodi' => $request->prodi,
+            'nilaiAkhirs' => $nilaiAkhirs,
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->download($filename);
     }
 
     public function evaluasiAlgoritma(): View
@@ -1572,5 +1601,161 @@ class KoordinatorController extends Controller
                 'query' => $request->query(),
             ]
         );
+    }
+
+    private function ambilNilaiAkhirTerfilterTersortir(Request $request, ?int $praktikumId, string $sortDirection = 'asc')
+    {
+        $query = NilaiAkhir::with([
+            'praktikum',
+            'praktikan.user',
+            'praktikan.kelompok',
+        ]);
+
+        if ($praktikumId) {
+            $query->where('praktikum_id', $praktikumId);
+        }
+
+        if ($request->filled('prodi')) {
+            $query->whereHas('praktikan.user', function ($q) use ($request) {
+                $q->where('prodi', $request->prodi);
+            });
+        }
+
+        if ($request->filled('status_kelulusan')) {
+            if ($request->status_kelulusan === 'lulus') {
+                $query->where('nilai_angka', '>=', 60);
+            }
+
+            if ($request->status_kelulusan === 'tidak_lulus') {
+                $query->where(function ($q) {
+                    $q->whereNull('nilai_angka')
+                        ->orWhere('nilai_angka', '<', 60);
+                });
+            }
+        }
+
+        $semuaNilai = $query->get();
+
+        $hasilSearch = $this->sequentialSearchNilaiAkhirKoordinator(
+            $semuaNilai,
+            $request->search
+        );
+
+        return $this->mergeSortNilaiAkhirByNim(
+            $hasilSearch,
+            $sortDirection
+        );
+    }
+
+    private function sequentialSearchNilaiAkhirKoordinator($nilaiAkhirs, ?string $keyword)
+    {
+        $nilaiAkhirs = collect($nilaiAkhirs)->values();
+
+        if (!$keyword) {
+            return $nilaiAkhirs;
+        }
+
+        $keyword = strtolower(trim($keyword));
+        $hasil = collect();
+
+        foreach ($nilaiAkhirs as $nilai) {
+            $nim = strtolower((string) ($nilai->praktikan->user->nim ?? ''));
+            $nama = strtolower((string) ($nilai->praktikan->user->name ?? ''));
+
+            if (
+                str_contains($nim, $keyword) ||
+                str_contains($nama, $keyword)
+            ) {
+                $hasil->push($nilai);
+            }
+        }
+
+        return $hasil->values();
+    }
+
+    private function mergeSortNilaiAkhirByNim($nilaiAkhirs, string $direction = 'asc')
+    {
+        $nilaiAkhirs = collect($nilaiAkhirs)->values();
+
+        if ($nilaiAkhirs->count() <= 1) {
+            return $nilaiAkhirs;
+        }
+
+        $mid = intdiv($nilaiAkhirs->count(), 2);
+
+        $left = $this->mergeSortNilaiAkhirByNim(
+            $nilaiAkhirs->slice(0, $mid)->values(),
+            $direction
+        );
+
+        $right = $this->mergeSortNilaiAkhirByNim(
+            $nilaiAkhirs->slice($mid)->values(),
+            $direction
+        );
+
+        return $this->mergeNilaiAkhirByNim($left, $right, $direction);
+    }
+
+    private function mergeNilaiAkhirByNim($left, $right, string $direction = 'asc')
+    {
+        $result = collect();
+
+        $i = 0;
+        $j = 0;
+
+        while ($i < $left->count() && $j < $right->count()) {
+            if ($this->ambilKiriUntukSortingNilaiAkhir($left[$i], $right[$j], $direction)) {
+                $result->push($left[$i]);
+                $i++;
+            } else {
+                $result->push($right[$j]);
+                $j++;
+            }
+        }
+
+        while ($i < $left->count()) {
+            $result->push($left[$i]);
+            $i++;
+        }
+
+        while ($j < $right->count()) {
+            $result->push($right[$j]);
+            $j++;
+        }
+
+        return $result->values();
+    }
+
+    private function ambilKiriUntukSortingNilaiAkhir($left, $right, string $direction = 'asc'): bool
+    {
+        $prodiLeft = strtolower((string) ($left->praktikan->user->prodi ?? ''));
+        $prodiRight = strtolower((string) ($right->praktikan->user->prodi ?? ''));
+
+        if ($prodiLeft !== $prodiRight) {
+            return $prodiLeft <= $prodiRight;
+        }
+
+        $nomorLeft = $this->ambilTigaAngkaTerakhirNim($left->praktikan->user->nim ?? null);
+        $nomorRight = $this->ambilTigaAngkaTerakhirNim($right->praktikan->user->nim ?? null);
+
+        if ($nomorLeft === $nomorRight) {
+            $nimLeft = preg_replace('/\D/', '', (string) ($left->praktikan->user->nim ?? ''));
+            $nimRight = preg_replace('/\D/', '', (string) ($right->praktikan->user->nim ?? ''));
+
+            return $direction === 'desc'
+                ? $nimLeft >= $nimRight
+                : $nimLeft <= $nimRight;
+        }
+
+        return $direction === 'desc'
+            ? $nomorLeft >= $nomorRight
+            : $nomorLeft <= $nomorRight;
+    }
+
+    private function statusKelulusanNilaiAkhir($nilai): string
+    {
+        return (float) ($nilai->nilai_angka ?? 0) >= 60
+            ? 'Lulus'
+            : 'Tidak Lulus';
     }
 }

@@ -184,6 +184,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/koordinator/nilai-akhir/export', [KoordinatorController::class, 'exportNilaiAkhir'])
             ->name('koordinator.nilai-akhir.export');
 
+        Route::get('/koordinator/nilai-akhir/export-pdf', [KoordinatorController::class, 'exportNilaiAkhirPdf'])
+            ->name('koordinator.nilai-akhir.export-pdf');
+
         Route::get('/koordinator/evaluasi-algoritma', [KoordinatorController::class, 'evaluasiAlgoritma'])
             ->name('koordinator.evaluasi-algoritma');
     });
