@@ -42,60 +42,133 @@ class KoordinatorController extends Controller
             ?? Praktikum::latest()->first();
     }
 
-    public function beranda(): View
+    public function beranda(Request $request): View
     {
         $this->pastikanKoordinator();
 
-        $praktikumAktif = $this->praktikumAktif();
+        $periodeTerbaru = Praktikum::latest()->first();
 
-        $totalPeriode = Praktikum::count();
+        $tahunAkademikOptions = Praktikum::whereNotNull('tahun_akademik')
+            ->select('tahun_akademik')
+            ->distinct()
+            ->orderByDesc('tahun_akademik')
+            ->pluck('tahun_akademik');
 
-        $totalPraktikan = $praktikumAktif
-            ? Praktikan::where('praktikum_id', $praktikumAktif->id)->count()
-            : 0;
+        $semesterOptions = collect(['Ganjil', 'Genap']);
 
-        $totalAsisten = $praktikumAktif
-            ? Asisten::where('praktikum_id', $praktikumAktif->id)->where('status', 'aktif')->count()
-            : 0;
+        $selectedTahunAkademik = $request->tahun_akademik ?? $periodeTerbaru?->tahun_akademik;
+        $selectedSemester = $request->semester ?? $periodeTerbaru?->semester;
 
-        $totalKelompok = $praktikumAktif
-            ? Kelompok::where('praktikum_id', $praktikumAktif->id)->count()
-            : 0;
+        $periodeDipilih = Praktikum::query()
+            ->when($selectedTahunAkademik, fn ($query) => $query->where('tahun_akademik', $selectedTahunAkademik))
+            ->when($selectedSemester, fn ($query) => $query->where('semester', $selectedSemester))
+            ->get();
 
-        $nilaiAkhirs = $praktikumAktif
-            ? NilaiAkhir::where('praktikum_id', $praktikumAktif->id)->get()
-            : collect();
+        $praktikumFisdas1 = $periodeDipilih->first(function ($praktikum) {
+            return $praktikum->jenis_praktikum === 'fisdas_1'
+                || str_contains(strtolower($praktikum->nama ?? ''), 'fisika dasar 1');
+        });
 
-        $totalDinilai = $nilaiAkhirs->filter(fn ($nilai) => $nilai->nilai_angka !== null)->count();
+        $praktikumFisdas2 = $periodeDipilih->first(function ($praktikum) {
+            return $praktikum->jenis_praktikum === 'fisdas_2'
+                || str_contains(strtolower($praktikum->nama ?? ''), 'fisika dasar 2');
+        });
 
-        $totalLulus = $nilaiAkhirs
-            ->filter(fn ($nilai) => $nilai->nilai_angka !== null && (float) $nilai->nilai_angka >= 60)
-            ->count();
+        $buatRingkasan = function (string $key, string $label, ?Praktikum $praktikum) {
+            if (!$praktikum) {
+                return [
+                    'key' => $key,
+                    'label' => $label,
+                    'praktikum' => null,
+                    'totalPraktikan' => 0,
+                    'totalAsisten' => 0,
+                    'totalKelompok' => 0,
+                    'totalProdi' => 0,
+                    'totalDinilai' => 0,
+                    'totalLulus' => 0,
+                    'totalTidakLulus' => 0,
+                    'persentaseLulus' => 0,
+                    'chartLabels' => ['Lulus', 'Belum/Tidak Lulus'],
+                    'chartData' => [0, 0],
+                ];
+            }
 
-        $persentaseLulus = $totalDinilai > 0
-            ? round(($totalLulus / $totalDinilai) * 100, 2)
-            : 0;
+            $totalPraktikan = Praktikan::where('praktikum_id', $praktikum->id)->count();
 
-        $chartKelulusanLabels = ['Lulus', 'Belum/Tidak Lulus'];
-        $chartKelulusanData = [
-            $totalLulus,
-            max(0, $totalDinilai - $totalLulus),
+            $totalAsisten = Asisten::where('praktikum_id', $praktikum->id)
+                ->where('status', 'aktif')
+                ->count();
+
+            $totalKelompok = Kelompok::where('praktikum_id', $praktikum->id)->count();
+
+            $totalProdi = Praktikan::with('user')
+                ->where('praktikum_id', $praktikum->id)
+                ->get()
+                ->pluck('user.prodi')
+                ->filter()
+                ->unique()
+                ->count();
+
+            $nilaiAkhirs = NilaiAkhir::where('praktikum_id', $praktikum->id)->get();
+
+            $totalDinilai = $nilaiAkhirs
+                ->filter(fn ($nilai) => $nilai->nilai_angka !== null)
+                ->count();
+
+            $totalLulus = $nilaiAkhirs
+                ->filter(fn ($nilai) => $nilai->nilai_angka !== null && (float) $nilai->nilai_angka >= 60)
+                ->count();
+
+            $totalTidakLulus = max(0, $totalDinilai - $totalLulus);
+
+            $persentaseLulus = $totalDinilai > 0
+                ? round(($totalLulus / $totalDinilai) * 100, 2)
+                : 0;
+
+            return [
+                'key' => $key,
+                'label' => $label,
+                'praktikum' => $praktikum,
+                'totalPraktikan' => $totalPraktikan,
+                'totalAsisten' => $totalAsisten,
+                'totalKelompok' => $totalKelompok,
+                'totalProdi' => $totalProdi,
+                'totalDinilai' => $totalDinilai,
+                'totalLulus' => $totalLulus,
+                'totalTidakLulus' => $totalTidakLulus,
+                'persentaseLulus' => $persentaseLulus,
+                'chartLabels' => ['Lulus', 'Belum/Tidak Lulus'],
+                'chartData' => [$totalLulus, $totalTidakLulus],
+            ];
+        };
+
+        $ringkasanPraktikums = collect([
+            $buatRingkasan('fisdas_1', 'Praktikum Fisika Dasar 1', $praktikumFisdas1),
+            $buatRingkasan('fisdas_2', 'Praktikum Fisika Dasar 2', $praktikumFisdas2),
+        ]);
+
+        $totalRingkasan = [
+            'totalPeriode' => $periodeDipilih->count(),
+            'totalPraktikan' => $ringkasanPraktikums->sum('totalPraktikan'),
+            'totalAsisten' => $ringkasanPraktikums->sum('totalAsisten'),
+            'totalKelompok' => $ringkasanPraktikums->sum('totalKelompok'),
+            'totalDinilai' => $ringkasanPraktikums->sum('totalDinilai'),
+            'totalLulus' => $ringkasanPraktikums->sum('totalLulus'),
         ];
 
+        $totalRingkasan['persentaseLulus'] = $totalRingkasan['totalDinilai'] > 0
+            ? round(($totalRingkasan['totalLulus'] / $totalRingkasan['totalDinilai']) * 100, 2)
+            : 0;
+
         return view('koordinator.beranda', compact(
-            'praktikumAktif',
-            'totalPeriode',
-            'totalPraktikan',
-            'totalAsisten',
-            'totalKelompok',
-            'totalDinilai',
-            'totalLulus',
-            'persentaseLulus',
-            'chartKelulusanLabels',
-            'chartKelulusanData'
+            'tahunAkademikOptions',
+            'semesterOptions',
+            'selectedTahunAkademik',
+            'selectedSemester',
+            'ringkasanPraktikums',
+            'totalRingkasan'
         ));
     }
-
     public function periode(Request $request): View
     {
         $this->pastikanKoordinator();
