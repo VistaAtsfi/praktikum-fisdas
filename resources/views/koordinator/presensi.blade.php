@@ -14,7 +14,7 @@
     </section>
 
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
-        <form method="GET" action="{{ route('koordinator.presensi') }}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <form method="GET" action="{{ route('koordinator.presensi') }}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
 
             <div>
                 <label class="block text-sm font-bold text-slate-700 mb-2">
@@ -38,6 +38,40 @@
                     @foreach ($praktikums as $praktikum)
                         <option value="{{ $praktikum->id }}" @selected($praktikumId == $praktikum->id)>
                             {{ $praktikum->nama }} - {{ $praktikum->tahun_akademik }} {{ $praktikum->semester }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    Program Studi
+                </label>
+
+                <select name="prodi"
+                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">Semua Prodi</option>
+
+                    @foreach (($prodis ?? collect()) as $prodi)
+                        <option value="{{ $prodi }}" @selected(request('prodi') === $prodi)>
+                            {{ $prodi }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    Modul
+                </label>
+
+                <select name="modul_id"
+                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">Semua Modul</option>
+
+                    @foreach (($moduls ?? collect()) as $modul)
+                        <option value="{{ $modul->id }}" @selected(request('modul_id') == $modul->id)>
+                            Modul {{ $loop->iteration }} - {{ $modul->nama_modul }}
                         </option>
                     @endforeach
                 </select>
@@ -108,16 +142,17 @@
 
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
         <div class="p-6 overflow-x-auto">
-            <table class="w-full min-w-[1200px] text-sm">
+            <table class="w-full min-w-[1350px] text-sm">
                 <thead>
-                    <tr class="bg-slate-100">
+                    <tr class="bg-slate-100 text-slate-700">
                         <th class="p-3 text-center rounded-l-xl">Timestamp</th>
+                        <th class="p-3 text-center">Modul</th>
                         <th class="p-3 text-center">Asisten</th>
                         <th class="p-3 text-center">NIM</th>
                         <th class="p-3 text-center">Nama</th>
+                        <th class="p-3 text-center">Prodi</th>
                         <th class="p-3 text-center">Kelompok</th>
                         <th class="p-3 text-center">Sesi</th>
-                        <th class="p-3 text-center">Modul</th>
                         <th class="p-3 text-center">Status</th>
                         <th class="p-3 text-center rounded-r-xl">Keterangan</th>
                     </tr>
@@ -133,11 +168,24 @@
                                 'sakit', 'izin', 'alpa' => 'bg-red-100 text-red-700',
                                 default => 'bg-slate-100 text-slate-500',
                             };
+
+                            $nomorModul = ($moduls ?? collect())->pluck('id')->search($presensi->modul_id);
                         @endphp
 
-                        <tr>
+                        <tr class="hover:bg-blue-50/40 transition">
                             <td class="p-3 text-center whitespace-nowrap">
                                 {{ $presensi->waktu_absen ? $presensi->waktu_absen->format('d/m/Y H:i:s') : '-' }}
+                            </td>
+
+                            <td class="p-3 text-center whitespace-nowrap">
+                                @if ($nomorModul !== false)
+                                    Modul {{ $nomorModul + 1 }}
+                                    <div class="text-xs text-slate-500 mt-1">
+                                        {{ $presensi->modul->nama_modul ?? '-' }}
+                                    </div>
+                                @else
+                                    {{ $presensi->modul->nama_modul ?? '-' }}
+                                @endif
                             </td>
 
                             <td class="p-3 text-center">
@@ -145,23 +193,23 @@
                             </td>
 
                             <td class="p-3 text-center">
-                                {{ $presensi->nim ?? '-' }}
+                                {{ $presensi->nim ?? $presensi->praktikan->user->nim ?? '-' }}
                             </td>
 
                             <td class="p-3 text-center font-semibold">
-                                {{ $presensi->nama ?? '-' }}
+                                {{ $presensi->nama ?? $presensi->praktikan->user->name ?? '-' }}
                             </td>
 
                             <td class="p-3 text-center">
-                                {{ $presensi->kelompok ?? '-' }}
+                                {{ $presensi->praktikan->user->prodi ?? '-' }}
                             </td>
 
                             <td class="p-3 text-center">
-                                {{ $presensi->sesi ?? '-' }}
+                                {{ $presensi->kelompok ?? $presensi->praktikan->kelompok->nama_kelompok ?? '-' }}
                             </td>
 
                             <td class="p-3 text-center">
-                                {{ $presensi->modul->nama_modul ?? '-' }}
+                                {{ $presensi->sesi ?? $presensi->praktikan->kelompok->sesi ?? '-' }}
                             </td>
 
                             <td class="p-3 text-center">
@@ -176,7 +224,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="p-5 text-center text-slate-500">
+                            <td colspan="10" class="p-5 text-center text-slate-500">
                                 Data presensi belum tersedia.
                             </td>
                         </tr>

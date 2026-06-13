@@ -1059,10 +1059,43 @@ class KoordinatorController extends Controller
             ->unique()
             ->values();
 
-        $query = Presensi::with(['praktikum', 'praktikan.user', 'praktikan.kelompok', 'modul', 'asisten.user']);
+        $moduls = $praktikumId
+            ? Modul::where('praktikum_id', $praktikumId)
+                ->orderBy('id')
+                ->get()
+            : collect();
+
+        $prodis = $praktikumId
+            ? Praktikan::with('user')
+                ->where('praktikum_id', $praktikumId)
+                ->get()
+                ->pluck('user.prodi')
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values()
+            : collect();
+
+        $query = Presensi::with([
+            'praktikum',
+            'praktikan.user',
+            'praktikan.kelompok',
+            'modul',
+            'asisten.user',
+        ]);
 
         if ($praktikumId) {
             $query->where('praktikum_id', $praktikumId);
+        }
+
+        if ($request->filled('modul_id')) {
+            $query->where('modul_id', $request->modul_id);
+        }
+
+        if ($request->filled('prodi')) {
+            $query->whereHas('praktikan.user', function ($userQuery) use ($request) {
+                $userQuery->where('prodi', $request->prodi);
+            });
         }
 
         if ($request->filled('status')) {
@@ -1106,7 +1139,11 @@ class KoordinatorController extends Controller
                     ->orWhereHas('praktikan.user', function ($userQuery) use ($search) {
                         $userQuery->where('name', 'like', "%{$search}%")
                             ->orWhere('nim', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%");
+                            ->orWhere('email', 'like', "%{$search}%")
+                            ->orWhere('prodi', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('modul', function ($modulQuery) use ($search) {
+                        $modulQuery->where('nama_modul', 'like', "%{$search}%");
                     });
             });
         }
@@ -1121,7 +1158,9 @@ class KoordinatorController extends Controller
             'praktikumId',
             'presensis',
             'kelompoks',
-            'sesis'
+            'sesis',
+            'moduls',
+            'prodis'
         ));
     }
 
