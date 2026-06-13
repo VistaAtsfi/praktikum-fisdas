@@ -18,6 +18,7 @@ use App\Models\AsistenPemeriksaLaporan;
 use App\Models\KategoriPenilaian;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Response;
@@ -520,11 +521,31 @@ class KoordinatorController extends Controller
         $praktikums = Praktikum::latest()->get();
         $praktikumId = $request->praktikum_id ?? $this->praktikumAktif()?->id;
 
-        $prodis = User::where('role', 'praktikan')
-            ->whereNotNull('prodi')
-            ->distinct()
-            ->orderBy('prodi')
-            ->pluck('prodi');
+        $sortDirection = $request->sort_direction === 'desc' ? 'desc' : 'asc';
+
+        $kelompoks = $praktikumId
+            ? Kelompok::where('praktikum_id', $praktikumId)
+                ->orderBy('nama_kelompok')
+                ->get()
+            : collect();
+
+        $sesis = $kelompoks
+            ->pluck('sesi')
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        $prodis = $praktikumId
+            ? Praktikan::with('user')
+                ->where('praktikum_id', $praktikumId)
+                ->get()
+                ->pluck('user.prodi')
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values()
+            : collect();
 
         $query = Praktikan::with(['user', 'praktikum', 'kelompok']);
 
@@ -533,29 +554,55 @@ class KoordinatorController extends Controller
         }
 
         if ($request->filled('prodi')) {
-            $query->whereHas('user', fn ($q) => $q->where('prodi', $request->prodi));
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-
-            $query->whereHas('user', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('nim', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('prodi', $request->prodi);
             });
         }
 
-        $praktikans = $query
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
+        if ($request->filled('kelompok_id')) {
+            $query->where('kelompok_id', $request->kelompok_id);
+        }
+
+        if ($request->filled('sesi')) {
+            $query->whereHas('kelompok', function ($q) use ($request) {
+                $q->where('sesi', $request->sesi);
+            });
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sequential Search + Merge Sort
+        |--------------------------------------------------------------------------
+        | Search hanya berdasarkan NIM dan nama.
+        | Filter kelompok dan sesi memakai dropdown.
+        | Sorting memakai Merge Sort berdasarkan prodi dan 3 angka terakhir NIM.
+        */
+        $semuaPraktikans = $query->get();
+
+        $hasilSearch = $this->sequentialSearchPraktikanKoordinator(
+            $semuaPraktikans,
+            $request->search
+        );
+
+        $hasilSort = $this->mergeSortPraktikanByNim(
+            $hasilSearch,
+            $sortDirection
+        );
+
+        $praktikans = $this->paginateCollectionKoordinator(
+            $hasilSort,
+            $request,
+            200
+        );
 
         return view('koordinator.praktikan', compact(
             'praktikums',
             'praktikumId',
             'prodis',
-            'praktikans'
+            'kelompoks',
+            'sesis',
+            'praktikans',
+            'sortDirection'
         ));
     }
 
@@ -1379,5 +1426,151 @@ class KoordinatorController extends Controller
             ->update([
                 'kelompok_id' => $kelompok->id,
             ]);
+    }
+
+    private function sequentialSearchPraktikanKoordinator($praktikans, ?string $keyword)
+    {
+        $praktikans = collect($praktikans)->values();
+
+        if (!$keyword) {
+            return $praktikans;
+        }
+
+        $keyword = strtolower(trim($keyword));
+        $hasil = collect();
+
+        foreach ($praktikans as $praktikan) {
+            $nim = strtolower((string) ($praktikan->user->nim ?? ''));
+            $nama = strtolower((string) ($praktikan->user->name ?? ''));
+
+            if (
+                str_contains($nim, $keyword) ||
+                str_contains($nama, $keyword)
+            ) {
+                $hasil->push($praktikan);
+            }
+        }
+
+        return $hasil->values();
+    }
+
+    private function mergeSortPraktikanByNim($praktikans, string $direction = 'asc')
+    {
+        $praktikans = collect($praktikans)->values();
+
+        if ($praktikans->count() <= 1) {
+            return $praktikans;
+        }
+
+        $mid = intdiv($praktikans->count(), 2);
+
+        $left = $this->mergeSortPraktikanByNim(
+            $praktikans->slice(0, $mid)->values(),
+            $direction
+        );
+
+        $right = $this->mergeSortPraktikanByNim(
+            $praktikans->slice($mid)->values(),
+            $direction
+        );
+
+        return $this->mergePraktikanByNim($left, $right, $direction);
+    }
+
+    private function mergePraktikanByNim($left, $right, string $direction = 'asc')
+    {
+        $result = collect();
+
+        $i = 0;
+        $j = 0;
+
+        while ($i < $left->count() && $j < $right->count()) {
+            if ($this->ambilKiriUntukSortingPraktikan($left[$i], $right[$j], $direction)) {
+                $result->push($left[$i]);
+                $i++;
+            } else {
+                $result->push($right[$j]);
+                $j++;
+            }
+        }
+
+        while ($i < $left->count()) {
+            $result->push($left[$i]);
+            $i++;
+        }
+
+        while ($j < $right->count()) {
+            $result->push($right[$j]);
+            $j++;
+        }
+
+        return $result->values();
+    }
+
+    private function ambilKiriUntukSortingPraktikan($left, $right, string $direction = 'asc'): bool
+    {
+        $prodiLeft = strtolower((string) ($left->user->prodi ?? ''));
+        $prodiRight = strtolower((string) ($right->user->prodi ?? ''));
+
+        /*
+        |--------------------------------------------------------------------------
+        | Urutan prodi tetap A-Z
+        |--------------------------------------------------------------------------
+        | Jadi kalau belum filter prodi, tampilannya tetap:
+        | Prodi A: 001, 002, 003, ...
+        | Prodi B: 001, 002, 003, ...
+        */
+        if ($prodiLeft !== $prodiRight) {
+            return $prodiLeft <= $prodiRight;
+        }
+
+        $nomorLeft = $this->ambilTigaAngkaTerakhirNim($left->user->nim ?? null);
+        $nomorRight = $this->ambilTigaAngkaTerakhirNim($right->user->nim ?? null);
+
+        if ($nomorLeft === $nomorRight) {
+            $nimLeft = preg_replace('/\D/', '', (string) ($left->user->nim ?? ''));
+            $nimRight = preg_replace('/\D/', '', (string) ($right->user->nim ?? ''));
+
+            return $direction === 'desc'
+                ? $nimLeft >= $nimRight
+                : $nimLeft <= $nimRight;
+        }
+
+        return $direction === 'desc'
+            ? $nomorLeft >= $nomorRight
+            : $nomorLeft <= $nomorRight;
+    }
+
+    private function ambilTigaAngkaTerakhirNim(?string $nim): int
+    {
+        $nim = preg_replace('/\D/', '', (string) $nim);
+
+        if ($nim === '') {
+            return PHP_INT_MAX;
+        }
+
+        return (int) substr($nim, -3);
+    }
+
+    private function paginateCollectionKoordinator($items, Request $request, int $perPage = 10): LengthAwarePaginator
+    {
+        $page = LengthAwarePaginator::resolveCurrentPage();
+
+        $items = collect($items)->values();
+
+        $currentPageItems = $items
+            ->slice(($page - 1) * $perPage, $perPage)
+            ->values();
+
+        return new LengthAwarePaginator(
+            $currentPageItems,
+            $items->count(),
+            $perPage,
+            $page,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
     }
 }
