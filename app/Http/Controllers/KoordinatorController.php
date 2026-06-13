@@ -403,13 +403,39 @@ class KoordinatorController extends Controller
         $praktikumId = $request->praktikum_id ?? $this->praktikumAktif()?->id;
 
         $moduls = $praktikumId
-            ? Modul::where('praktikum_id', $praktikumId)->orderBy('id')->get()
+            ? Modul::where('praktikum_id', $praktikumId)
+                ->orderBy('nomor_modul')
+                ->orderBy('id')
+                ->get()
             : collect();
+
+        $prodisDariPeriode = $praktikumId
+            ? PraktikumProdi::where('praktikum_id', $praktikumId)
+                ->pluck('nama_prodi')
+            : collect();
+
+        $prodisDariPraktikan = $praktikumId
+            ? Praktikan::with('user')
+                ->where('praktikum_id', $praktikumId)
+                ->get()
+                ->pluck('user.prodi')
+            : collect();
+
+        $prodis = $prodisDariPeriode
+            ->merge($prodisDariPraktikan)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
 
         $query = Materi::with(['praktikum', 'modul']);
 
         if ($praktikumId) {
             $query->where('praktikum_id', $praktikumId);
+        }
+
+        if ($request->filled('prodi')) {
+            $query->where('prodi', $request->prodi);
         }
 
         if ($request->filled('search')) {
@@ -418,12 +444,17 @@ class KoordinatorController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('judul', 'like', "%{$search}%")
                     ->orWhere('deskripsi', 'like', "%{$search}%")
-                    ->orWhereHas('modul', fn ($m) => $m->where('nama_modul', 'like', "%{$search}%"));
+                    ->orWhere('prodi', 'like', "%{$search}%")
+                    ->orWhereHas('modul', function ($modulQuery) use ($search) {
+                        $modulQuery->where('nama_modul', 'like', "%{$search}%");
+                    });
             });
         }
 
         $materis = $query
-            ->latest()
+            ->orderBy('prodi')
+            ->orderBy('modul_id')
+            ->orderBy('id')
             ->paginate(10)
             ->withQueryString();
 
@@ -431,7 +462,8 @@ class KoordinatorController extends Controller
             'praktikums',
             'praktikumId',
             'moduls',
-            'materis'
+            'materis',
+            'prodis'
         ));
     }
 
@@ -441,6 +473,7 @@ class KoordinatorController extends Controller
 
         $request->validate([
             'praktikum_id' => ['required', 'exists:praktikums,id'],
+            'prodi' => ['required', 'string', 'max:100'],
             'nama_modul' => ['nullable', 'string', 'max:255'],
             'judul' => ['required', 'string', 'max:255'],
             'deskripsi' => ['nullable', 'string'],
@@ -450,10 +483,16 @@ class KoordinatorController extends Controller
         $modulId = null;
 
         if ($request->filled('nama_modul')) {
+            $nomorModulBaru = ((int) Modul::where('praktikum_id', $request->praktikum_id)
+                ->max('nomor_modul')) + 1;
+
             $modul = Modul::firstOrCreate(
                 [
                     'praktikum_id' => $request->praktikum_id,
                     'nama_modul' => trim($request->nama_modul),
+                ],
+                [
+                    'nomor_modul' => $nomorModulBaru,
                 ]
             );
 
@@ -462,10 +501,11 @@ class KoordinatorController extends Controller
 
         Materi::create([
             'praktikum_id' => $request->praktikum_id,
+            'prodi' => $request->prodi,
             'modul_id' => $modulId,
             'judul' => $request->judul,
             'deskripsi' => $request->deskripsi,
-            'link' => $request->link,
+            'link' => $this->normalisasiLinkGoogleDrive($request->link),
         ]);
 
         return back()->with('status', 'Materi berhasil ditambahkan.');
@@ -1310,6 +1350,27 @@ class KoordinatorController extends Controller
             $sortDirection
         );
 
+        $frekuensiNilaiHuruf = collect([
+            'A' => 0,
+            'B' => 0,
+            'C' => 0,
+            'D' => 0,
+            'E' => 0,
+        ]);
+
+        foreach ($hasilNilaiAkhir as $nilai) {
+            $huruf = strtoupper(trim((string) ($nilai->nilai_huruf ?? '')));
+
+            if ($frekuensiNilaiHuruf->has($huruf)) {
+                $frekuensiNilaiHuruf[$huruf] = $frekuensiNilaiHuruf[$huruf] + 1;
+            }
+        }
+
+        $totalNilaiHuruf = $frekuensiNilaiHuruf->sum();
+
+        $chartNilaiHurufLabels = $frekuensiNilaiHuruf->keys()->values();
+        $chartNilaiHurufData = $frekuensiNilaiHuruf->values();
+
         $nilaiAkhirs = $this->paginateCollectionKoordinator(
             $hasilNilaiAkhir,
             $request,
@@ -1321,7 +1382,11 @@ class KoordinatorController extends Controller
             'praktikumId',
             'nilaiAkhirs',
             'prodis',
-            'sortDirection'
+            'sortDirection',
+            'frekuensiNilaiHuruf',
+            'totalNilaiHuruf',
+            'chartNilaiHurufLabels',
+            'chartNilaiHurufData'
         ));
     }
 
@@ -1696,14 +1761,12 @@ class KoordinatorController extends Controller
 
         if ($request->filled('status_kelulusan')) {
             if ($request->status_kelulusan === 'lulus') {
-                $query->where('nilai_angka', '>=', 60);
+                $query->whereNotNull('nilai_huruf')
+                    ->whereRaw("UPPER(TRIM(nilai_huruf)) != 'E'");
             }
 
             if ($request->status_kelulusan === 'tidak_lulus') {
-                $query->where(function ($q) {
-                    $q->whereNull('nilai_angka')
-                        ->orWhere('nilai_angka', '<', 60);
-                });
+                $query->whereRaw("UPPER(TRIM(nilai_huruf)) = 'E'");
             }
         }
 
@@ -1827,8 +1890,33 @@ class KoordinatorController extends Controller
 
     private function statusKelulusanNilaiAkhir($nilai): string
     {
-        return (float) ($nilai->nilai_angka ?? 0) >= 60
-            ? 'Lulus'
-            : 'Tidak Lulus';
+        $huruf = strtoupper(trim((string) ($nilai->nilai_huruf ?? '')));
+
+        if ($huruf === '') {
+            return '-';
+        }
+
+        return $huruf === 'E'
+            ? 'Tidak Lulus'
+            : 'Lulus';
+    }
+
+    private function normalisasiLinkGoogleDrive(?string $link): ?string
+    {
+        $link = trim((string) $link);
+
+        if ($link === '') {
+            return null;
+        }
+
+        if (preg_match('/drive\.google\.com\/file\/d\/([^\/\?\&]+)/', $link, $matches)) {
+            return 'https://drive.google.com/file/d/' . $matches[1] . '/view';
+        }
+
+        if (preg_match('/[\?\&]id=([^\/\?\&]+)/', $link, $matches)) {
+            return 'https://drive.google.com/file/d/' . $matches[1] . '/view';
+        }
+
+        return $link;
     }
 }

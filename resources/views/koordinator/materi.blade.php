@@ -1,7 +1,7 @@
 @extends('layouts.koordinator', ['title' => 'Materi Praktikum'])
 
 @section('content')
-<div class="space-y-8"
+<div class="space-y-8 max-w-full overflow-x-hidden"
      x-data="{
         deleteModal: false,
         deleteUrl: '',
@@ -24,9 +24,15 @@
         </h1>
 
         <p class="text-slate-500 mt-2">
-            Kelola materi praktikum berdasarkan periode dan modul.
+            Kelola materi praktikum berdasarkan periode, program studi, dan modul.
         </p>
     </section>
+
+    @if (session('status'))
+        <section class="rounded-3xl bg-green-50 border border-green-100 p-5 text-green-700 font-bold">
+            {{ session('status') }}
+        </section>
+    @endif
 
     @if ($errors->any())
         <section class="bg-red-50 border border-red-100 rounded-3xl p-6">
@@ -72,17 +78,39 @@
 
             <div>
                 <label class="block text-sm font-bold text-slate-700 mb-2">
+                    Program Studi
+                </label>
+
+                <select name="prodi"
+                        required
+                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">Pilih Program Studi</option>
+
+                    @foreach (($prodis ?? collect()) as $prodi)
+                        <option value="{{ $prodi }}" @selected(old('prodi') === $prodi)>
+                            {{ $prodi }}
+                        </option>
+                    @endforeach
+                </select>
+
+                <p class="text-xs text-slate-500 mt-2">
+                    Materi akan ditampilkan sesuai program studi praktikan.
+                </p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
                     Nama Modul
                 </label>
 
                 <input type="text"
                        name="nama_modul"
                        value="{{ old('nama_modul') }}"
-                       placeholder="Contoh: Modul 1 - Hukum Kekekalan Energi Mekanik"
+                       placeholder="Contoh: Modul 1"
                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
             </div>
 
-            <div class="md:col-span-2">
+            <div>
                 <label class="block text-sm font-bold text-slate-700 mb-2">
                     Judul Materi
                 </label>
@@ -116,6 +144,10 @@
                        value="{{ old('link') }}"
                        placeholder="Masukkan link Google Drive atau link materi"
                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+
+                <p class="text-xs text-slate-500 mt-2">
+                    Gunakan link Google Drive yang sudah diatur Anyone with the link - Viewer.
+                </p>
             </div>
 
             <div class="md:col-span-2 flex justify-end">
@@ -130,9 +162,9 @@
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
         <form method="GET"
               action="{{ route('koordinator.materi') }}"
-              class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
 
-            <div class="md:col-span-2">
+            <div class="xl:col-span-2">
                 <label class="block text-sm font-bold text-slate-700 mb-2">
                     Cari Materi
                 </label>
@@ -140,7 +172,7 @@
                 <input type="text"
                        name="search"
                        value="{{ request('search') }}"
-                       placeholder="Cari judul, deskripsi, atau nama modul"
+                       placeholder="Cari judul, deskripsi, prodi, atau nama modul"
                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
             </div>
 
@@ -159,9 +191,26 @@
                 </select>
             </div>
 
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    Program Studi
+                </label>
+
+                <select name="prodi"
+                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">Semua Prodi</option>
+
+                    @foreach (($prodis ?? collect()) as $prodi)
+                        <option value="{{ $prodi }}" @selected(request('prodi') === $prodi)>
+                            {{ $prodi }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
             <div class="flex items-end gap-3">
                 <button type="submit"
-                        class="px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
+                        class="w-full px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
                     Cari
                 </button>
 
@@ -177,20 +226,26 @@
         @forelse ($materis as $materi)
             <div class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
                 @php
-                    $nomorModul = $moduls->pluck('id')->search($materi->modul_id);
+                    $nomorModul = ($moduls ?? collect())->pluck('id')->search($materi->modul_id);
                 @endphp
 
-                <p class="text-xs font-extrabold text-blue-700 uppercase">
-                    @if ($materi->modul && $nomorModul !== false)
-                        Modul {{ $nomorModul + 1 }} - {{ $materi->modul->nama_modul }}
-                    @elseif ($materi->modul)
-                        {{ $materi->modul->nama_modul }}
-                    @else
-                        Materi Umum
-                    @endif
-                </p>
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="inline-flex px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-extrabold">
+                        @if ($materi->modul && $nomorModul !== false)
+                            Modul {{ $nomorModul + 1 }}
+                        @elseif ($materi->modul)
+                            {{ $materi->modul->nama_modul }}
+                        @else
+                            Materi Umum
+                        @endif
+                    </span>
 
-                <h3 class="text-xl font-extrabold text-slate-900 mt-2">
+                    <span class="inline-flex px-3 py-1 rounded-full bg-cyan-50 text-cyan-700 text-xs font-extrabold">
+                        {{ $materi->prodi ?? 'Tanpa Prodi' }}
+                    </span>
+                </div>
+
+                <h3 class="text-xl font-extrabold text-slate-900 mt-4">
                     {{ $materi->judul }}
                 </h3>
 
@@ -198,17 +253,24 @@
                     {{ $materi->deskripsi ?? 'Tidak ada deskripsi.' }}
                 </p>
 
+                @if ($materi->link)
+                    <p class="mt-4 text-xs text-slate-400 break-all">
+                        {{ $materi->link }}
+                    </p>
+                @endif
+
                 <div class="mt-5 flex flex-wrap gap-3">
                     @if ($materi->link)
                         <a href="{{ $materi->link }}"
                            target="_blank"
+                           rel="noopener noreferrer"
                            class="px-4 py-2 rounded-xl bg-blue-700 text-white font-bold hover:bg-blue-800 transition">
                             Lihat Materi
                         </a>
                     @endif
 
                     <button type="button"
-                            @click="openDelete('{{ route('koordinator.materi.delete', $materi) }}', '{{ addslashes($materi->judul) }}')"
+                            @click="openDelete(@js(route('koordinator.materi.delete', $materi)), @js($materi->judul))"
                             class="px-4 py-2 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition">
                         Hapus
                     </button>

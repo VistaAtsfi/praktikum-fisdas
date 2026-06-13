@@ -11,6 +11,7 @@ class Modul extends Model
 
     protected $fillable = [
         'praktikum_id',
+        'nomor_modul',
         'nama_modul',
         'urutan',
     ];

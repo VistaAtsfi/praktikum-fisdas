@@ -11,6 +11,7 @@ class Materi extends Model
 
     protected $fillable = [
         'praktikum_id',
+        'prodi',
         'modul_id',
         'judul',
         'deskripsi',

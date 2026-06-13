@@ -1,7 +1,25 @@
 @extends('layouts.koordinator', ['title' => 'Nilai Akhir'])
 
 @section('content')
-<div class="space-y-8">
+@php
+    $frekuensiNilaiHuruf = collect($frekuensiNilaiHuruf ?? [
+        'A' => 0,
+        'B' => 0,
+        'C' => 0,
+        'D' => 0,
+        'E' => 0,
+    ]);
+
+    $totalNilaiHuruf = $totalNilaiHuruf ?? $frekuensiNilaiHuruf->sum();
+
+    $chartHurufLabels = collect($chartNilaiHurufLabels ?? $frekuensiNilaiHuruf->keys()->values());
+    $chartHurufData = collect($chartNilaiHurufData ?? $frekuensiNilaiHuruf->values());
+
+    $nilaiTerbanyakHuruf = $frekuensiNilaiHuruf->sortDesc()->keys()->first();
+    $nilaiTerbanyakJumlah = $frekuensiNilaiHuruf->max() ?? 0;
+@endphp
+
+<div class="space-y-8 max-w-full overflow-x-hidden">
 
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
         <h1 class="text-3xl font-extrabold text-slate-900">
@@ -27,7 +45,7 @@
                     Pengurutan
                 </p>
                 <p class="text-slate-600 mt-1">
-                    Menggunakan Merge Sort berdasarkan Prodi dan NIM.
+                    Menggunakan Merge Sort berdasarkan prodi dan NIM.
                 </p>
             </div>
         </div>
@@ -104,9 +122,11 @@
                 <select name="status_kelulusan"
                         class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
                     <option value="">Semua Status</option>
+
                     <option value="lulus" @selected(request('status_kelulusan') === 'lulus')>
                         Lulus
                     </option>
+
                     <option value="tidak_lulus" @selected(request('status_kelulusan') === 'tidak_lulus')>
                         Tidak Lulus
                     </option>
@@ -169,98 +189,226 @@
         </div>
     </section>
 
-    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
+    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden max-w-full">
         <div class="p-6 border-b border-blue-100">
             <h2 class="text-2xl font-extrabold text-slate-900">
                 Daftar Nilai Akhir
             </h2>
 
             <p class="text-slate-500 mt-1">
-                Data dicari dengan Sequential Search, lalu diurutkan menggunakan Merge Sort berdasarkan prodi dan 3 angka terakhir NIM.
+                Data dicari dengan Sequential Search, lalu diurutkan menggunakan Merge Sort berdasarkan prodi dan NIM.
             </p>
         </div>
 
-        <div class="p-6 overflow-x-auto">
-            <table class="w-full min-w-[1450px] text-sm">
-                <thead>
-                    <tr class="bg-slate-100 text-slate-700">
-                        <th class="p-3 text-center rounded-l-xl">No.</th>
-                        <th class="p-3 text-center">NIM</th>
-                        <th class="p-3 text-center">Nama</th>
-                        <th class="p-3 text-center">Prodi</th>
-                        <th class="p-3 text-center">Kelompok</th>
-                        <th class="p-3 text-center">Kehadiran</th>
-                        <th class="p-3 text-center">Laporan</th>
-                        <th class="p-3 text-center">Responsi</th>
-                        <th class="p-3 text-center">Asistensi</th>
-                        <th class="p-3 text-center">Kemampuan Praktik</th>
-                        <th class="p-3 text-center">Nilai Angka</th>
-                        <th class="p-3 text-center">Bobot</th>
-                        <th class="p-3 text-center">Huruf</th>
-                        <th class="p-3 text-center rounded-r-xl">Kelulusan</th>
-                    </tr>
-                </thead>
-
-                <tbody class="divide-y divide-slate-100">
-                    @forelse ($nilaiAkhirs as $nilai)
-                        @php
-                            $lulus = (float) ($nilai->nilai_angka ?? 0) >= 60;
-                        @endphp
-
-                        <tr class="hover:bg-blue-50/40 transition">
-                            <td class="p-3 text-center">
-                                {{ $loop->iteration + ($nilaiAkhirs->currentPage() - 1) * $nilaiAkhirs->perPage() }}
-                            </td>
-
-                            <td class="p-3 text-center font-bold whitespace-nowrap">
-                                {{ $nilai->praktikan->user->nim ?? '-' }}
-                            </td>
-
-                            <td class="p-3 text-center font-semibold">
-                                {{ $nilai->praktikan->user->name ?? '-' }}
-                            </td>
-
-                            <td class="p-3 text-center">
-                                {{ $nilai->praktikan->user->prodi ?? '-' }}
-                            </td>
-
-                            <td class="p-3 text-center">
-                                {{ $nilai->praktikan->kelompok->nama_kelompok ?? '-' }}
-                            </td>
-
-                            <td class="p-3 text-center">{{ $nilai->kehadiran ?? '-' }}</td>
-                            <td class="p-3 text-center">{{ $nilai->laporan ?? '-' }}</td>
-                            <td class="p-3 text-center">{{ $nilai->responsi ?? '-' }}</td>
-                            <td class="p-3 text-center">{{ $nilai->asistensi ?? '-' }}</td>
-                            <td class="p-3 text-center">{{ $nilai->kemampuan_praktik ?? '-' }}</td>
-
-                            <td class="p-3 text-center font-extrabold">
-                                {{ $nilai->nilai_angka !== null ? number_format((float) $nilai->nilai_angka, 2) : '-' }}
-                            </td>
-
-                            <td class="p-3 text-center font-extrabold">
-                                {{ $nilai->nilai_bobot ?? '-' }}
-                            </td>
-
-                            <td class="p-3 text-center font-extrabold">
-                                {{ $nilai->nilai_huruf ?? '-' }}
-                            </td>
-
-                            <td class="p-3 text-center">
-                                <span class="px-3 py-1 rounded-full text-xs font-extrabold {{ $lulus ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
-                                    {{ $lulus ? 'Lulus' : 'Tidak Lulus' }}
-                                </span>
-                            </td>
+        <div class="p-6 max-w-full overflow-hidden">
+            {{-- Tampilan desktop --}}
+            <div class="hidden xl:block">
+                <table class="w-full table-fixed text-[11px]">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700">
+                            <th class="p-2 text-center rounded-l-xl">No.</th>
+                            <th class="p-2 text-center">NIM</th>
+                            <th class="p-2 text-center">Nama</th>
+                            <th class="p-2 text-center">Prodi</th>
+                            <th class="p-2 text-center">Kelompok</th>
+                            <th class="p-2 text-center">Kehadiran</th>
+                            <th class="p-2 text-center">Laporan</th>
+                            <th class="p-2 text-center">Responsi</th>
+                            <th class="p-2 text-center">Asistensi</th>
+                            <th class="p-2 text-center">Praktik</th>
+                            <th class="p-2 text-center">Angka</th>
+                            <th class="p-2 text-center">Bobot</th>
+                            <th class="p-2 text-center">Huruf</th>
+                            <th class="p-2 text-center rounded-r-xl">Kelulusan</th>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="14" class="p-5 text-center text-slate-500">
-                                Data nilai akhir belum tersedia.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    </thead>
+
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse ($nilaiAkhirs as $nilai)
+                            @php
+                                $huruf = strtoupper(trim((string) ($nilai->nilai_huruf ?? '')));
+                                $statusKelulusan = $huruf === ''
+                                    ? '-'
+                                    : ($huruf === 'E' ? 'Tidak Lulus' : 'Lulus');
+
+                                $statusClass = match ($statusKelulusan) {
+                                    'Lulus' => 'bg-green-100 text-green-700',
+                                    'Tidak Lulus' => 'bg-red-100 text-red-700',
+                                    default => 'bg-slate-100 text-slate-500',
+                                };
+                            @endphp
+
+                            <tr class="hover:bg-blue-50/40 transition align-top">
+                                <td class="p-2 text-center">
+                                    {{ $loop->iteration + ($nilaiAkhirs->currentPage() - 1) * $nilaiAkhirs->perPage() }}
+                                </td>
+
+                                <td class="p-2 text-center font-bold break-words">
+                                    {{ $nilai->praktikan->user->nim ?? '-' }}
+                                </td>
+
+                                <td class="p-2 text-center font-semibold break-words">
+                                    {{ $nilai->praktikan->user->name ?? '-' }}
+                                </td>
+
+                                <td class="p-2 text-center break-words">
+                                    {{ $nilai->praktikan->user->prodi ?? '-' }}
+                                </td>
+
+                                <td class="p-2 text-center break-words">
+                                    {{ $nilai->praktikan->kelompok->nama_kelompok ?? '-' }}
+                                </td>
+
+                                <td class="p-2 text-center">
+                                    {{ $nilai->kehadiran ?? '-' }}
+                                </td>
+
+                                <td class="p-2 text-center">
+                                    {{ $nilai->laporan ?? '-' }}
+                                </td>
+
+                                <td class="p-2 text-center">
+                                    {{ $nilai->responsi ?? '-' }}
+                                </td>
+
+                                <td class="p-2 text-center">
+                                    {{ $nilai->asistensi ?? '-' }}
+                                </td>
+
+                                <td class="p-2 text-center">
+                                    {{ $nilai->kemampuan_praktik ?? '-' }}
+                                </td>
+
+                                <td class="p-2 text-center font-extrabold">
+                                    {{ $nilai->nilai_angka !== null ? number_format((float) $nilai->nilai_angka, 2) : '-' }}
+                                </td>
+
+                                <td class="p-2 text-center font-extrabold">
+                                    {{ $nilai->nilai_bobot ?? '-' }}
+                                </td>
+
+                                <td class="p-2 text-center font-extrabold">
+                                    {{ $nilai->nilai_huruf ?? '-' }}
+                                </td>
+
+                                <td class="p-2 text-center">
+                                    <span class="inline-flex justify-center px-2 py-1 rounded-full text-[10px] font-extrabold {{ $statusClass }}">
+                                        {{ $statusKelulusan }}
+                                    </span>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="14" class="p-5 text-center text-slate-500">
+                                    Data nilai akhir belum tersedia.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Tampilan tablet/mobile: turun ke bawah, tidak scroll samping --}}
+            <div class="xl:hidden space-y-4">
+                @forelse ($nilaiAkhirs as $nilai)
+                    @php
+                        $huruf = strtoupper(trim((string) ($nilai->nilai_huruf ?? '')));
+                        $statusKelulusan = $huruf === ''
+                            ? '-'
+                            : ($huruf === 'E' ? 'Tidak Lulus' : 'Lulus');
+
+                        $statusClass = match ($statusKelulusan) {
+                            'Lulus' => 'bg-green-100 text-green-700',
+                            'Tidak Lulus' => 'bg-red-100 text-red-700',
+                            default => 'bg-slate-100 text-slate-500',
+                        };
+                    @endphp
+
+                    <div class="rounded-3xl border border-blue-100 bg-white p-5 shadow-sm">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <p class="text-xs text-slate-500">
+                                    {{ $nilai->praktikan->user->nim ?? '-' }}
+                                </p>
+
+                                <h3 class="text-lg font-extrabold text-slate-900 mt-1">
+                                    {{ $nilai->praktikan->user->name ?? '-' }}
+                                </h3>
+
+                                <p class="text-sm text-slate-500 mt-1">
+                                    {{ $nilai->praktikan->user->prodi ?? '-' }}
+                                </p>
+                            </div>
+
+                            <span class="shrink-0 px-3 py-1 rounded-full text-xs font-extrabold {{ $statusClass }}">
+                                {{ $statusKelulusan }}
+                            </span>
+                        </div>
+
+                        <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                            <div class="rounded-2xl bg-slate-50 p-3">
+                                <p class="text-slate-500">Kelompok</p>
+                                <p class="font-bold text-slate-900 mt-1">
+                                    {{ $nilai->praktikan->kelompok->nama_kelompok ?? '-' }}
+                                </p>
+                            </div>
+
+                            <div class="rounded-2xl bg-slate-50 p-3">
+                                <p class="text-slate-500">Nilai Angka</p>
+                                <p class="font-extrabold text-slate-900 mt-1">
+                                    {{ $nilai->nilai_angka !== null ? number_format((float) $nilai->nilai_angka, 2) : '-' }}
+                                </p>
+                            </div>
+
+                            <div class="rounded-2xl bg-slate-50 p-3">
+                                <p class="text-slate-500">Nilai Huruf</p>
+                                <p class="font-extrabold text-slate-900 mt-1">
+                                    {{ $nilai->nilai_huruf ?? '-' }}
+                                </p>
+                            </div>
+
+                            <div class="rounded-2xl bg-blue-50 p-3">
+                                <p class="text-blue-700">Kehadiran</p>
+                                <p class="font-bold text-slate-900 mt-1">
+                                    {{ $nilai->kehadiran ?? '-' }}
+                                </p>
+                            </div>
+
+                            <div class="rounded-2xl bg-blue-50 p-3">
+                                <p class="text-blue-700">Laporan</p>
+                                <p class="font-bold text-slate-900 mt-1">
+                                    {{ $nilai->laporan ?? '-' }}
+                                </p>
+                            </div>
+
+                            <div class="rounded-2xl bg-blue-50 p-3">
+                                <p class="text-blue-700">Responsi</p>
+                                <p class="font-bold text-slate-900 mt-1">
+                                    {{ $nilai->responsi ?? '-' }}
+                                </p>
+                            </div>
+
+                            <div class="rounded-2xl bg-purple-50 p-3">
+                                <p class="text-purple-700">Asistensi</p>
+                                <p class="font-bold text-slate-900 mt-1">
+                                    {{ $nilai->asistensi ?? '-' }}
+                                </p>
+                            </div>
+
+                            <div class="rounded-2xl bg-cyan-50 p-3 sm:col-span-2">
+                                <p class="text-cyan-700">Kemampuan Praktik</p>
+                                <p class="font-bold text-slate-900 mt-1">
+                                    {{ $nilai->kemampuan_praktik ?? '-' }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="rounded-2xl bg-slate-50 border border-slate-100 p-6 text-center text-slate-500">
+                        Data nilai akhir belum tersedia.
+                    </div>
+                @endforelse
+            </div>
 
             <div class="mt-6">
                 {{ $nilaiAkhirs->links() }}
@@ -268,5 +416,157 @@
         </div>
     </section>
 
+    {{-- Visualisasi Nilai Huruf --}}
+    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden max-w-full">
+        <div class="p-6 border-b border-blue-100">
+            <h2 class="text-2xl font-extrabold text-slate-900">
+                Visualisasi Nilai Huruf
+            </h2>
+
+            <p class="text-slate-500 mt-1">
+                Grafik ini menampilkan distribusi nilai huruf A, B, C, D, dan E berdasarkan filter yang dipilih.
+            </p>
+        </div>
+
+        <div class="p-6 grid grid-cols-1 xl:grid-cols-12 gap-6 max-w-full overflow-hidden">
+            <div class="xl:col-span-4 space-y-4">
+                <div class="rounded-3xl bg-slate-50 border border-slate-100 p-5">
+                    <h3 class="text-xl font-extrabold text-slate-900">
+                        Frekuensi Nilai
+                    </h3>
+
+                    <p class="text-sm text-slate-500 mt-1">
+                        Jumlah praktikan pada setiap nilai huruf.
+                    </p>
+
+                    <div class="mt-5 overflow-hidden rounded-2xl border border-slate-200">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700">
+                                    <th class="p-3 text-center">Nilai</th>
+                                    <th class="p-3 text-center">Frekuensi</th>
+                                </tr>
+                            </thead>
+
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                                @foreach (($frekuensiNilaiHuruf ?? collect(['A' => 0, 'B' => 0, 'C' => 0, 'D' => 0, 'E' => 0])) as $huruf => $jumlah)
+                                    <tr>
+                                        <td class="p-3 text-center font-extrabold text-slate-900">
+                                            {{ $huruf }}
+                                        </td>
+
+                                        <td class="p-3 text-center font-bold text-slate-700">
+                                            {{ $jumlah }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {{-- Card kecil kanan-kiri --}}
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="rounded-2xl bg-blue-50 border border-blue-100 p-4">
+                        <p class="text-blue-700 font-extrabold text-xs">
+                            Total Nilai Huruf
+                        </p>
+
+                        <h3 class="text-3xl font-extrabold text-slate-900 mt-2">
+                            {{ $totalNilaiHuruf ?? 0 }}
+                        </h3>
+
+                        <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+                            Praktikan yang sudah memiliki nilai huruf.
+                        </p>
+                    </div>
+
+                    <div class="rounded-2xl bg-cyan-50 border border-cyan-100 p-4">
+                        <p class="text-cyan-700 font-extrabold text-xs">
+                            Nilai Terbanyak
+                        </p>
+
+                        <h3 class="text-3xl font-extrabold text-slate-900 mt-2">
+                            {{ $nilaiTerbanyakHuruf ?? '-' }}
+                        </h3>
+
+                        <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+                            {{ $nilaiTerbanyakJumlah ?? 0 }} praktikan pada nilai ini.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="xl:col-span-8 rounded-3xl bg-slate-50 border border-slate-100 p-6">
+                <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                    <div>
+                        <h3 class="text-xl font-extrabold text-slate-900">
+                            Distribusi Nilai Huruf
+                        </h3>
+
+                        <p class="text-sm text-slate-500 mt-1">
+                            Diagram menunjukkan perbandingan jumlah nilai A sampai E.
+                        </p>
+                    </div>
+                </div>
+
+                @if (($totalNilaiHuruf ?? 0) > 0)
+                    <div class="h-96 mt-6">
+                        <canvas id="nilaiHurufChart"></canvas>
+                    </div>
+                @else
+                    <div class="h-96 mt-6 flex items-center justify-center text-center text-slate-500">
+                        Data nilai huruf belum tersedia pada filter ini.
+                    </div>
+                @endif
+            </div>
+        </div>
+    </section>
+
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const nilaiHurufCanvas = document.getElementById('nilaiHurufChart');
+
+    if (nilaiHurufCanvas) {
+        new Chart(nilaiHurufCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: @json($chartHurufLabels),
+                datasets: [{
+                    data: @json($chartHurufData),
+                    backgroundColor: [
+                        '#2563eb',
+                        '#22c55e',
+                        '#f59e0b',
+                        '#ef4444',
+                        '#7f1d1d'
+                    ],
+                    borderColor: '#ffffff',
+                    borderWidth: 4,
+                    hoverOffset: 10,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '58%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 14,
+                            padding: 18,
+                            font: {
+                                size: 13,
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
 @endsection
