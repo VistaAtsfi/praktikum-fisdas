@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PraktikanAreaController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\KoordinatorController;
+use App\Http\Controllers\AlgorithmEvaluationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -187,8 +188,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/koordinator/nilai-akhir/export-pdf', [KoordinatorController::class, 'exportNilaiAkhirPdf'])
             ->name('koordinator.nilai-akhir.export-pdf');
 
-        Route::get('/koordinator/evaluasi-algoritma', [KoordinatorController::class, 'evaluasiAlgoritma'])
+        Route::get('/koordinator/evaluasi-algoritma', [AlgorithmEvaluationController::class, 'index'])
             ->name('koordinator.evaluasi-algoritma');
+
+        Route::get('/koordinator/evaluasi-algoritma/export', [AlgorithmEvaluationController::class, 'exportZip'])
+            ->name('koordinator.evaluasi-algoritma.export');
     });
 
     /*
