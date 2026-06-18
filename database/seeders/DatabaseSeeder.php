@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             InitialDataSeeder::class,
             MateriFisdas2025Seeder::class,
             FisdasRealDataSeeder::class,
+            FisdasJadwalKelompokRealDataSeeder::class,
         ]);
     }
 }

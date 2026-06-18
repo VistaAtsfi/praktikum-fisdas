@@ -56,6 +56,16 @@ class Praktikum extends Model
         return $this->hasMany(Presensi::class);
     }
 
+    public function jadwalLaporans()
+    {
+        return $this->hasMany(JadwalLaporan::class);
+    }
+
+    public function jadwalModulPraktikums()
+    {
+        return $this->hasMany(JadwalModulPraktikum::class);
+    }
+
     public function nilaiAkhirs()
     {
         return $this->hasMany(NilaiAkhir::class);

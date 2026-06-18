@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Asisten;
+use App\Models\AsistenPemeriksaLaporan;
 use App\Models\Materi;
 use App\Models\Modul;
 use App\Models\NilaiAkhir;
 use App\Models\NilaiHarian;
 use App\Models\Praktikan;
 use App\Models\Presensi;
+use App\Models\JadwalLaporan;
+use App\Models\JadwalModulPraktikum;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -161,10 +164,48 @@ class PraktikanAreaController extends Controller
             ->first();
 
         $moduls = Modul::where('praktikum_id', $praktikan->praktikum_id)
+            ->orderBy('nomor_modul')
             ->orderBy('id')
             ->get();
 
-        return view('praktikan.jadwal', compact('praktikan', 'asisten', 'moduls'));
+        $prodi = $praktikan->user->prodi;
+        $kelompokId = $praktikan->kelompok_id;
+
+        $jadwalLaporans = JadwalLaporan::where('praktikum_id', $praktikan->praktikum_id)
+            ->where('prodi', $prodi)
+            ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
+            ->orderBy('jam_mulai')
+            ->get();
+
+        $jadwalModulPraktikums = JadwalModulPraktikum::with(['modul', 'kelompok'])
+            ->where('praktikum_id', $praktikan->praktikum_id)
+            ->where('prodi', $prodi)
+            ->when($kelompokId, function ($query) use ($kelompokId) {
+                $query->where('kelompok_id', $kelompokId);
+            })
+            ->orderBy('minggu_ke')
+            ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
+            ->orderBy('jam_mulai')
+            ->orderBy('modul_id')
+            ->get()
+            ->groupBy('minggu_ke');
+
+        $asistenPemeriksa = AsistenPemeriksaLaporan::with(['asisten.user', 'modul', 'kelompok'])
+            ->where('praktikum_id', $praktikan->praktikum_id)
+            ->when($kelompokId, function ($query) use ($kelompokId) {
+                $query->where('kelompok_id', $kelompokId);
+            })
+            ->orderBy('modul_id')
+            ->get();
+
+        return view('praktikan.jadwal', compact(
+            'praktikan',
+            'asisten',
+            'moduls',
+            'jadwalLaporans',
+            'jadwalModulPraktikums',
+            'asistenPemeriksa'
+        ));
     }
 
     public function biodata(): View
