@@ -91,6 +91,12 @@
                     <span>Kelompok</span>
                 </a>
 
+                <a href="{{ route('koordinator.jadwal') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold transition {{ request()->routeIs('koordinator.jadwal*') ? 'bg-blue-700 text-white shadow' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-700' }}">
+                    <span>🗓️</span>
+                    <span>Jadwal</span>
+                </a>
+
                 <a href="{{ route('koordinator.penilaian') }}"
                 class="flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold transition {{ request()->routeIs('koordinator.penilaian*') ? 'bg-blue-700 text-white shadow' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-700' }}">
                     <span>📝</span>
