@@ -73,6 +73,12 @@
                     <span>Materi</span>
                 </a>
 
+                <a href="{{ route('asisten.jadwal') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold transition {{ request()->routeIs('asisten.jadwal') ? 'bg-blue-700 text-white shadow' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-700' }}">
+                    <span>📅</span>
+                    <span>Jadwal Praktikum</span>
+                </a>
+
                 <a href="{{ route('asisten.penilaian') }}"
                    class="flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold transition {{ request()->routeIs('asisten.penilaian*') ? 'bg-blue-700 text-white shadow' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-700' }}">
                     <span>📝</span>

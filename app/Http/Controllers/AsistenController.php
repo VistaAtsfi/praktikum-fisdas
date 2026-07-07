@@ -13,6 +13,8 @@ use App\Models\NilaiLaporanResmi;
 use App\Models\NilaiPenulisanLaporan;
 use App\Models\Praktikan;
 use App\Models\Presensi;
+use App\Models\JadwalModulPraktikum;
+use App\Models\AsistenPemeriksaLaporan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -108,6 +110,117 @@ class AsistenController extends Controller
             'jumlahMateri',
             'jumlahPresensi',
             'praktikanBelumAsistensi'
+        ));
+    }
+
+    public function jadwal(Request $request)
+    {
+        $this->pastikanAsisten();
+
+        $asisten = $this->asisten();
+        $praktikum = $asisten?->praktikum;
+
+        if (!$praktikum) {
+
+            $jadwals = collect();
+            $kelompoks = collect();
+            $moduls = collect();
+
+            return view('asisten.jadwal', compact(
+                'asisten',
+                'praktikum',
+                'jadwals',
+                'kelompoks',
+                'moduls'
+            ));
+        }
+
+        $kelompoks = Kelompok::where('praktikum_id', $praktikum->id)
+            ->orderBy('nama_kelompok')
+            ->get();
+
+        $moduls = Modul::where('praktikum_id', $praktikum->id)
+            ->orderBy('id')
+            ->get();
+
+        $query = JadwalModulPraktikum::with([
+                'kelompok',
+                'modul',
+            ])
+            ->where('praktikum_id', $praktikum->id);
+
+        $penugasans = AsistenPemeriksaLaporan::where('asisten_id', $asisten->id)
+            ->where('praktikum_id', $praktikum->id)
+            ->get();
+
+        $query->where(function ($q) use ($penugasans) {
+
+            foreach ($penugasans as $penugasan) {
+
+                $q->orWhere(function ($sub) use ($penugasan) {
+
+                    $sub->where('kelompok_id', $penugasan->kelompok_id)
+                        ->where('modul_id', $penugasan->modul_id)
+                        ->where('prodi', $penugasan->prodi);
+
+                });
+
+            }
+
+        });
+
+        // if ($penugasans->isEmpty()) {
+        //     $query->whereRaw('1 = 0');
+        // }
+
+        if ($request->filled('kelompok_id')) {
+            $query->where('kelompok_id', $request->kelompok_id);
+        }
+
+        if ($request->filled('modul_id')) {
+            $query->where('modul_id', $request->modul_id);
+        }
+
+        if ($request->filled('hari')) {
+            $query->where('hari', $request->hari);
+        }
+
+        if ($request->filled('search')) {
+
+            $search = $request->search;
+
+            $query->where(function ($q) use ($search) {
+
+                $q->where('prodi', 'like', "%{$search}%")
+                ->orWhere('keterangan', 'like', "%{$search}%")
+                ->orWhere('kelompok_label', 'like', "%{$search}%")
+                ->orWhereHas('kelompok', function ($qq) use ($search) {
+
+                        $qq->where('nama_kelompok', 'like', "%{$search}%");
+
+                })
+                ->orWhereHas('modul', function ($qq) use ($search) {
+
+                        $qq->where('nama_modul', 'like', "%{$search}%");
+
+                });
+
+            });
+        }
+
+        $jadwals = $query
+            ->orderBy('minggu_ke')
+            ->orderBy('hari')
+            ->orderBy('jam_mulai')
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('asisten.jadwal', compact(
+            'asisten',
+            'praktikum',
+            'jadwals',
+            'kelompoks',
+            'moduls'
         ));
     }
 

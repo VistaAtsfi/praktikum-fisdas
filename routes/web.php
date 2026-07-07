@@ -74,6 +74,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/dashboard/asisten', [AsistenController::class, 'beranda'])
             ->name('dashboard.asisten');
 
+        Route::get('/asisten/jadwal', [AsistenController::class, 'jadwal'])
+            ->name('asisten.jadwal');
+
         Route::get('/asisten/presensi', [AsistenController::class, 'presensi'])
             ->name('asisten.presensi');
 
