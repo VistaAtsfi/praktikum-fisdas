@@ -51,7 +51,7 @@
         </div>
     </section>
 
-    @if ($errors->any())
+    @if (isset($errors) && $errors->any())
         <section class="bg-red-50 border border-red-100 rounded-3xl p-6">
             <h2 class="font-extrabold text-red-700 mb-3">
                 Terjadi kesalahan:
@@ -68,7 +68,7 @@
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
         <form method="GET"
               action="{{ route('koordinator.nilai-akhir') }}"
-              class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+              class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
 
             <div>
                 <label class="block text-sm font-bold text-slate-700 mb-2">
@@ -150,7 +150,21 @@
                 </select>
             </div>
 
-            <div class="xl:col-span-5 flex flex-col sm:flex-row gap-3">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    Tampilkan Isi
+                </label>
+
+                <select name="per_page"
+                        onchange="this.form.submit()"
+                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 bg-blue-50/50 font-bold text-blue-900">
+                    <option value="10" @selected(($perPage ?? request('per_page', 10)) == 10)>10 Baris</option>
+                    <option value="50" @selected(($perPage ?? request('per_page')) == 50)>50 Baris</option>
+                    <option value="100" @selected(($perPage ?? request('per_page')) == 100)>100 Baris</option>
+                </select>
+            </div>
+
+            <div class="xl:col-span-6 flex flex-col sm:flex-row gap-3">
                 <button type="submit"
                         class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
                     Terapkan
@@ -190,14 +204,22 @@
     </section>
 
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden max-w-full">
-        <div class="p-6 border-b border-blue-100">
-            <h2 class="text-2xl font-extrabold text-slate-900">
-                Daftar Nilai Akhir
-            </h2>
+        <div class="p-6 border-b border-blue-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-extrabold text-slate-900">
+                    Daftar Nilai Akhir
+                </h2>
 
-            <p class="text-slate-500 mt-1">
-                Data dicari dengan Sequential Search, lalu diurutkan menggunakan Merge Sort berdasarkan prodi dan NIM.
-            </p>
+                <p class="text-slate-500 mt-1">
+                    Data dicari dengan Sequential Search, lalu diurutkan menggunakan Merge Sort berdasarkan prodi dan NIM.
+                </p>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="inline-flex items-center px-4 py-2 rounded-2xl bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100">
+                    Menampilkan {{ $nilaiAkhirs->firstItem() ?? 0 }} - {{ $nilaiAkhirs->lastItem() ?? 0 }} dari {{ $nilaiAkhirs->total() }} praktikan
+                </span>
+            </div>
         </div>
 
         <div class="p-6 max-w-full overflow-hidden">
@@ -260,23 +282,23 @@
                                 </td>
 
                                 <td class="p-2 text-center">
-                                    {{ $nilai->kehadiran ?? '-' }}
+                                    {{ $nilai->kehadiran ?? $nilai->praktikan?->nilaiHarian?->rata_rata_kehadiran ?? '-' }}
                                 </td>
 
                                 <td class="p-2 text-center">
-                                    {{ $nilai->laporan ?? '-' }}
+                                    {{ $nilai->laporan ?? $nilai->praktikan?->nilaiHarian?->laporan ?? $nilai->praktikan?->nilaiPenulisanLaporan?->nilai_akhir ?? '-' }}
                                 </td>
 
                                 <td class="p-2 text-center">
-                                    {{ $nilai->responsi ?? '-' }}
+                                    {{ $nilai->responsi ?? $nilai->praktikan?->nilaiHarian?->rata_rata_responsi ?? '-' }}
                                 </td>
 
                                 <td class="p-2 text-center">
-                                    {{ $nilai->asistensi ?? '-' }}
+                                    {{ $nilai->asistensi ?? $nilai->praktikan?->nilaiHarian?->rata_rata_asistensi ?? '-' }}
                                 </td>
 
                                 <td class="p-2 text-center">
-                                    {{ $nilai->kemampuan_praktik ?? '-' }}
+                                    {{ $nilai->kemampuan_praktik ?? $nilai->praktikan?->nilaiHarian?->rata_rata_kemampuan_praktik ?? $nilai->praktikan?->nilaiKemampuanPraktikum?->rata_rata_akhir ?? '-' }}
                                 </td>
 
                                 <td class="p-2 text-center font-extrabold">
@@ -370,35 +392,35 @@
                             <div class="rounded-2xl bg-blue-50 p-3">
                                 <p class="text-blue-700">Kehadiran</p>
                                 <p class="font-bold text-slate-900 mt-1">
-                                    {{ $nilai->kehadiran ?? '-' }}
+                                    {{ $nilai->kehadiran ?? $nilai->praktikan?->nilaiHarian?->rata_rata_kehadiran ?? '-' }}
                                 </p>
                             </div>
 
                             <div class="rounded-2xl bg-blue-50 p-3">
                                 <p class="text-blue-700">Laporan</p>
                                 <p class="font-bold text-slate-900 mt-1">
-                                    {{ $nilai->laporan ?? '-' }}
+                                    {{ $nilai->laporan ?? $nilai->praktikan?->nilaiHarian?->laporan ?? $nilai->praktikan?->nilaiPenulisanLaporan?->nilai_akhir ?? '-' }}
                                 </p>
                             </div>
 
                             <div class="rounded-2xl bg-blue-50 p-3">
                                 <p class="text-blue-700">Responsi</p>
                                 <p class="font-bold text-slate-900 mt-1">
-                                    {{ $nilai->responsi ?? '-' }}
+                                    {{ $nilai->responsi ?? $nilai->praktikan?->nilaiHarian?->rata_rata_responsi ?? '-' }}
                                 </p>
                             </div>
 
                             <div class="rounded-2xl bg-purple-50 p-3">
                                 <p class="text-purple-700">Asistensi</p>
                                 <p class="font-bold text-slate-900 mt-1">
-                                    {{ $nilai->asistensi ?? '-' }}
+                                    {{ $nilai->asistensi ?? $nilai->praktikan?->nilaiHarian?->rata_rata_asistensi ?? '-' }}
                                 </p>
                             </div>
 
                             <div class="rounded-2xl bg-cyan-50 p-3 sm:col-span-2">
                                 <p class="text-cyan-700">Kemampuan Praktik</p>
                                 <p class="font-bold text-slate-900 mt-1">
-                                    {{ $nilai->kemampuan_praktik ?? '-' }}
+                                    {{ $nilai->kemampuan_praktik ?? $nilai->praktikan?->nilaiHarian?->rata_rata_kemampuan_praktik ?? $nilai->praktikan?->nilaiKemampuanPraktikum?->rata_rata_akhir ?? '-' }}
                                 </p>
                             </div>
                         </div>
@@ -410,8 +432,14 @@
                 @endforelse
             </div>
 
-            <div class="mt-6">
-                {{ $nilaiAkhirs->links() }}
+            <div class="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-slate-100 pt-4">
+                <p class="text-xs text-slate-500 font-semibold">
+                    Halaman {{ $nilaiAkhirs->currentPage() }} dari {{ $nilaiAkhirs->lastPage() }} (Total {{ $nilaiAkhirs->total() }} praktikan)
+                </p>
+
+                <div>
+                    {{ $nilaiAkhirs->links() }}
+                </div>
             </div>
         </div>
     </section>

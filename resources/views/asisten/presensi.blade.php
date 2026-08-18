@@ -38,11 +38,13 @@
 
             <div>
                 <label class="block text-sm font-bold text-slate-700 mb-2">Saring Berdasarkan Kelompok</label>
-                <select name="kelompok_id"
+                <select name="kelompok"
                         class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
                     <option value="">Semua Kelompok</option>
+
                     @foreach ($kelompoks as $kelompok)
-                        <option value="{{ $kelompok->id }}" @selected(request('kelompok_id') == $kelompok->id)>
+                        <option value="{{ $kelompok->nama_kelompok }}"
+                                @selected(request('kelompok') === $kelompok->nama_kelompok)>
                             {{ $kelompok->nama_kelompok }}
                         </option>
                     @endforeach

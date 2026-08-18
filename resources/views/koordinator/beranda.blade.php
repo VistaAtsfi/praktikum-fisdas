@@ -3,29 +3,37 @@
 @section('content')
 <div class="space-y-8">
 
-    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
-        <h1 class="text-3xl font-extrabold text-slate-900">
-            Beranda Koordinator Praktikum
-        </h1>
-
-        <p class="text-slate-500 mt-2">
-            Pantau ringkasan praktikum berdasarkan tahun akademik, semester, dan jenis praktikum.
-        </p>
+    {{-- Header Halaman --}}
+    <section class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 sm:p-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    Beranda Koordinator Praktikum
+                </h1>
+                <p class="text-slate-500 mt-1.5 text-sm sm:text-base leading-relaxed">
+                    Pantau ringkasan praktikum, status pelaksanaan, dan tingkat kelulusan praktikan per periode.
+                </p>
+            </div>
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold self-start md:self-auto">
+                <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                Tahun {{ $selectedTahunAkademik ?? '-' }} • Semester {{ $selectedSemester ?? '-' }}
+            </div>
+        </div>
     </section>
 
-    {{-- Filter --}}
-    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
+    {{-- Filter Periode --}}
+    <section class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6">
         <form method="GET"
               action="{{ route('dashboard.koordinator') }}"
-              class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
 
             <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
                     Tahun Akademik
                 </label>
 
                 <select name="tahun_akademik"
-                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                        class="w-full rounded-2xl border-slate-200 text-sm font-medium text-slate-800 focus:border-blue-600 focus:ring-blue-600">
                     @foreach ($tahunAkademikOptions as $tahunAkademik)
                         <option value="{{ $tahunAkademik }}" @selected($selectedTahunAkademik === $tahunAkademik)>
                             {{ $tahunAkademik }}
@@ -35,91 +43,96 @@
             </div>
 
             <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
                     Semester
                 </label>
 
                 <select name="semester"
-                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                        class="w-full rounded-2xl border-slate-200 text-sm font-medium text-slate-800 focus:border-blue-600 focus:ring-blue-600">
                     @foreach ($semesterOptions as $semester)
                         <option value="{{ $semester }}" @selected($selectedSemester === $semester)>
-                            {{ $semester }}
+                            Semester {{ $semester }}
                         </option>
                     @endforeach
                 </select>
             </div>
 
-            <div class="flex items-end gap-3">
+            <div class="flex items-end gap-2 sm:col-span-2 md:col-span-1">
                 <button type="submit"
-                        class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
-                    Terapkan
+                        class="flex-1 px-5 py-2.5 rounded-2xl bg-blue-700 text-white text-sm font-bold hover:bg-blue-800 transition shadow-sm">
+                    Terapkan Filter
                 </button>
 
                 <a href="{{ route('dashboard.koordinator') }}"
-                   class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 font-extrabold hover:bg-slate-200 transition text-center">
+                   class="px-4 py-2.5 rounded-2xl bg-slate-100 text-slate-600 text-sm font-bold hover:bg-slate-200 transition text-center">
                     Reset
                 </a>
             </div>
         </form>
 
-        <div class="mt-5 rounded-2xl bg-blue-50 border border-blue-100 p-4">
-            <p class="text-sm text-blue-800 leading-relaxed">
-                Data pada beranda ini ditampilkan berdasarkan
-                <span class="font-extrabold">Tahun Akademik {{ $selectedTahunAkademik ?? '-' }}</span>
-                dan
-                <span class="font-extrabold">Semester {{ $selectedSemester ?? '-' }}</span>.
-                Ringkasan dipisahkan antara Praktikum Fisika Dasar 1 dan Praktikum Fisika Dasar 2 agar jumlah praktikan, asisten, kelompok, dan kelulusan tidak tercampur.
+        <div class="mt-5 rounded-2xl bg-slate-50 border border-slate-200/70 p-4">
+            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                <span class="font-bold text-slate-800">Konteks Filter:</span>
+                Data ditampilkan untuk <span class="font-semibold text-slate-800">Tahun Akademik {{ $selectedTahunAkademik ?? '-' }}</span> dan <span class="font-semibold text-slate-800">Semester {{ $selectedSemester ?? '-' }}</span>.
+                Ringkasan di bawah memisahkan Fisika Dasar 1 dan Fisika Dasar 2 secara independen agar data tidak tercampur.
             </p>
         </div>
     </section>
 
-    {{-- Total Gabungan Sesuai Filter --}}
-    <section class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
-            <p class="text-sm text-slate-500">Periode Pada Filter Ini</p>
-            <h3 class="text-4xl font-extrabold text-slate-900 mt-2">
+    {{-- Total Gabungan Sesuai Filter (Muted Neutral Cards) --}}
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5">
+        <div class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm p-5 hover:border-slate-300 transition">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Periode Aktif</p>
+            <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-800 mt-2">
                 {{ $totalRingkasan['totalPeriode'] }}
             </h3>
+            <p class="text-xs text-slate-400 mt-1">Praktikum terdaftar</p>
         </div>
 
-        <div class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
-            <p class="text-sm text-slate-500">Total Praktikan</p>
-            <h3 class="text-4xl font-extrabold text-slate-900 mt-2">
+        <div class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm p-5 hover:border-slate-300 transition">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Praktikan</p>
+            <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-800 mt-2">
                 {{ $totalRingkasan['totalPraktikan'] }}
             </h3>
+            <p class="text-xs text-slate-400 mt-1">Mahasiswa terdaftar</p>
         </div>
 
-        <div class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
-            <p class="text-sm text-slate-500">Total Asisten Aktif</p>
-            <h3 class="text-4xl font-extrabold text-slate-900 mt-2">
+        <div class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm p-5 hover:border-slate-300 transition">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Asisten</p>
+            <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-800 mt-2">
                 {{ $totalRingkasan['totalAsisten'] }}
             </h3>
+            <p class="text-xs text-slate-400 mt-1">Asisten aktif</p>
         </div>
 
-        <div class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
-            <p class="text-sm text-slate-500">Total Kelompok</p>
-            <h3 class="text-4xl font-extrabold text-slate-900 mt-2">
+        <div class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-sm p-5 hover:border-slate-300 transition">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Kelompok</p>
+            <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-800 mt-2">
                 {{ $totalRingkasan['totalKelompok'] }}
             </h3>
+            <p class="text-xs text-slate-400 mt-1">Kelompok praktikum</p>
         </div>
     </section>
 
     {{-- Ringkasan Per Jenis Praktikum --}}
     <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
         @foreach ($ringkasanPraktikums as $ringkasan)
-            <div class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
-                <div class="p-6 border-b border-blue-100">
-                    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+            <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col justify-between">
+                
+                {{-- Header Kartu Praktikum --}}
+                <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div>
-                            <h2 class="text-2xl font-extrabold text-slate-900">
-                                {{ $ringkasan['label'] }}
-                            </h2>
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full {{ $ringkasan['praktikum']?->is_aktif ? 'bg-emerald-500' : 'bg-slate-300' }}"></span>
+                                <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                                    {{ $ringkasan['label'] }}
+                                </h2>
+                            </div>
 
-                            <p class="text-slate-500 mt-1">
+                            <p class="text-xs sm:text-sm text-slate-500 mt-1">
                                 @if ($ringkasan['praktikum'])
-                                    {{ $ringkasan['praktikum']->tahun_akademik }}
-                                    -
-                                    Semester {{ $ringkasan['praktikum']->semester }}
+                                    Tahun Akademik {{ $ringkasan['praktikum']->tahun_akademik }} • Semester {{ $ringkasan['praktikum']->semester }}
                                 @else
                                     Periode belum tersedia pada filter ini.
                                 @endif
@@ -127,103 +140,144 @@
                         </div>
 
                         @if ($ringkasan['praktikum']?->is_aktif)
-                            <span class="inline-flex px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-extrabold">
-                                Aktif
+                            <span class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold self-start sm:self-auto">
+                                ● Aktif
                             </span>
                         @else
-                            <span class="inline-flex px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-extrabold">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500 text-xs font-bold self-start sm:self-auto">
                                 Tidak Aktif
                             </span>
                         @endif
                     </div>
                 </div>
 
-                <div class="p-6 space-y-6">
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="rounded-2xl bg-blue-50 border border-blue-100 p-4">
-                            <p class="text-xs font-bold text-blue-700">Praktikan</p>
-                            <h3 class="text-3xl font-extrabold text-slate-900 mt-2">
+                <div class="p-6 space-y-6 flex-1">
+                    
+                    {{-- Mini General Stats (Neutral, Muted) --}}
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="rounded-2xl bg-slate-50/80 border border-slate-200/60 p-3.5 text-center">
+                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Praktikan</p>
+                            <h3 class="text-xl sm:text-2xl font-extrabold text-slate-800 mt-1">
                                 {{ $ringkasan['totalPraktikan'] }}
                             </h3>
                         </div>
 
-                        <div class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
-                            <p class="text-xs font-bold text-slate-600">Program Studi</p>
-                            <h3 class="text-3xl font-extrabold text-slate-900 mt-2">
+                        <div class="rounded-2xl bg-slate-50/80 border border-slate-200/60 p-3.5 text-center">
+                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Prodi</p>
+                            <h3 class="text-xl sm:text-2xl font-extrabold text-slate-800 mt-1">
                                 {{ $ringkasan['totalProdi'] }}
                             </h3>
                         </div>
 
-                        <div class="rounded-2xl bg-purple-50 border border-purple-100 p-4">
-                            <p class="text-xs font-bold text-purple-700">Asisten</p>
-                            <h3 class="text-3xl font-extrabold text-slate-900 mt-2">
+                        <div class="rounded-2xl bg-slate-50/80 border border-slate-200/60 p-3.5 text-center">
+                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Asisten</p>
+                            <h3 class="text-xl sm:text-2xl font-extrabold text-slate-800 mt-1">
                                 {{ $ringkasan['totalAsisten'] }}
                             </h3>
                         </div>
 
-                        <div class="rounded-2xl bg-cyan-50 border border-cyan-100 p-4">
-                            <p class="text-xs font-bold text-cyan-700">Kelompok</p>
-                            <h3 class="text-3xl font-extrabold text-slate-900 mt-2">
+                        <div class="rounded-2xl bg-slate-50/80 border border-slate-200/60 p-3.5 text-center">
+                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Kelompok</p>
+                            <h3 class="text-xl sm:text-2xl font-extrabold text-slate-800 mt-1">
                                 {{ $ringkasan['totalKelompok'] }}
                             </h3>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                        <div class="lg:col-span-5 rounded-3xl bg-slate-50 border border-slate-100 p-5">
-                            <h3 class="text-lg font-extrabold text-slate-900">
-                                Persentase Kelulusan
-                            </h3>
+                    {{-- SPOTLIGHT SECTION: PERSENTASE KELULUSAN (Fokus Utama) --}}
+                    <div class="rounded-2xl bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 border-2 border-emerald-200/80 p-5 shadow-sm relative overflow-hidden">
+                        
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100/80 text-emerald-800 text-xs font-extrabold">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                                    Tingkat Kelulusan
+                                </span>
+                                <h4 class="text-sm font-semibold text-slate-600 mt-1.5">
+                                    Persentase Praktikan Lulus
+                                </h4>
+                            </div>
 
-                            @if ($ringkasan['totalDinilai'] > 0)
-                                <div class="h-64 mt-4">
-                                    <canvas id="kelulusanChart-{{ $ringkasan['key'] }}"></canvas>
+                            <div class="text-left sm:text-right">
+                                <div class="text-3xl sm:text-4xl font-black text-emerald-700 tracking-tight">
+                                    {{ $ringkasan['persentaseLulus'] }}%
                                 </div>
-                            @else
-                                <div class="h-64 mt-4 flex items-center justify-center text-center text-slate-500">
-                                    Data nilai akhir belum tersedia.
-                                </div>
-                            @endif
+                                <p class="text-xs text-slate-500 mt-0.5">
+                                    {{ $ringkasan['totalLulus'] }} dari {{ $ringkasan['totalDinilai'] }} praktikan dinilai
+                                </p>
+                            </div>
                         </div>
 
-                        <div class="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="rounded-2xl bg-blue-50 border border-blue-100 p-5">
-                                <p class="text-blue-700 font-bold">Total Dinilai</p>
-                                <h3 class="text-4xl font-extrabold text-slate-900 mt-2">
-                                    {{ $ringkasan['totalDinilai'] }}
-                                </h3>
-                            </div>
-
-                            <div class="rounded-2xl bg-green-50 border border-green-100 p-5">
-                                <p class="text-green-700 font-bold">Total Lulus</p>
-                                <h3 class="text-4xl font-extrabold text-slate-900 mt-2">
-                                    {{ $ringkasan['totalLulus'] }}
-                                </h3>
-                            </div>
-
-                            <div class="rounded-2xl bg-red-50 border border-red-100 p-5">
-                                <p class="text-red-700 font-bold">Belum/Tidak Lulus</p>
-                                <h3 class="text-4xl font-extrabold text-slate-900 mt-2">
-                                    {{ $ringkasan['totalTidakLulus'] }}
-                                </h3>
-                            </div>
-
-                            <div class="rounded-2xl bg-cyan-50 border border-cyan-100 p-5">
-                                <p class="text-cyan-700 font-bold">Kelulusan</p>
-                                <h3 class="text-4xl font-extrabold text-slate-900 mt-2">
-                                    {{ $ringkasan['persentaseLulus'] }}%
-                                </h3>
+                        {{-- Progress Bar --}}
+                        <div class="mt-4">
+                            <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200/60">
+                                <div class="bg-emerald-600 h-full rounded-full transition-all duration-700 ease-out"
+                                     style="width: {{ min(100, max(0, $ringkasan['persentaseLulus'])) }}%">
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
-                        <p class="text-sm text-slate-600 leading-relaxed">
-                            <span class="font-extrabold text-slate-800">Keterangan:</span>
-                            Total dinilai hanya menghitung praktikan yang sudah memiliki nilai akhir.
-                            Status lulus dihitung dari nilai angka minimal 60.
-                            Data ini hanya untuk {{ $ringkasan['label'] }} pada tahun akademik dan semester yang dipilih.
-                        </p>
+                    {{-- Detail Nilai & Visualisasi Donut Chart --}}
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                        
+                        {{-- Donut Chart Container --}}
+                        <div class="md:col-span-5 bg-slate-50/60 rounded-2xl border border-slate-200/60 p-4 flex flex-col items-center justify-center min-h-[200px]">
+                            @if ($ringkasan['totalDinilai'] > 0)
+                                <div class="w-full h-44 relative">
+                                    <canvas id="kelulusanChart-{{ $ringkasan['key'] }}"></canvas>
+                                </div>
+                            @else
+                                <div class="h-44 flex flex-col items-center justify-center text-center p-4 text-slate-400">
+                                    <span class="text-3xl mb-2">📊</span>
+                                    <p class="text-xs font-medium">Data nilai akhir belum tersedia</p>
+                                </div>
+                            @endif
+                        </div>
+
+                        {{-- Breakdown Items (Muted Neutral Cards dengan Dot Indicator) --}}
+                        <div class="md:col-span-7 space-y-2.5">
+                            
+                            {{-- Total Dinilai --}}
+                            <div class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                                    <span class="text-xs font-bold text-slate-600">Total Dinilai</span>
+                                </div>
+                                <span class="text-base sm:text-lg font-extrabold text-slate-800">
+                                    {{ $ringkasan['totalDinilai'] }}
+                                </span>
+                            </div>
+
+                            {{-- Total Lulus --}}
+                            <div class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                    <span class="text-xs font-bold text-slate-600">Lulus (Nilai ≥ 60)</span>
+                                </div>
+                                <span class="text-base sm:text-lg font-extrabold text-emerald-700">
+                                    {{ $ringkasan['totalLulus'] }}
+                                </span>
+                            </div>
+
+                            {{-- Belum/Tidak Lulus --}}
+                            <div class="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                                    <span class="text-xs font-bold text-slate-600">Belum / Tidak Lulus</span>
+                                </div>
+                                <span class="text-base sm:text-lg font-extrabold text-slate-700">
+                                    {{ $ringkasan['totalTidakLulus'] }}
+                                </span>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {{-- Catatan / Keterangan --}}
+                    <div class="rounded-xl bg-slate-50/70 border border-slate-200/50 p-3 text-xs text-slate-500 leading-relaxed">
+                        <span class="font-bold text-slate-700">Catatan:</span>
+                        Kelulusan dihitung berdasarkan ambang batas nilai akhir angka minimal 60 (Huruf Mutu C).
                     </div>
                 </div>
             </div>
@@ -257,18 +311,28 @@
                     labels: row.labels,
                     datasets: [{
                         data: row.data,
-                        backgroundColor: ['#16a34a', '#dc2626'],
+                        backgroundColor: ['#10b981', '#cbd5e1'],
+                        hoverBackgroundColor: ['#059669', '#94a3b8'],
                         borderColor: '#ffffff',
-                        borderWidth: 4,
-                        hoverOffset: 10,
+                        borderWidth: 3,
+                        hoverOffset: 6,
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    cutout: '70%',
                     plugins: {
                         legend: {
                             position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 12,
+                                font: {
+                                    size: 11,
+                                    weight: 'bold'
+                                }
+                            }
                         }
                     }
                 }

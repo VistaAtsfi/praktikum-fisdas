@@ -637,17 +637,22 @@ class KoordinatorController extends Controller
 
         $sortDirection = $request->sort_direction === 'desc' ? 'desc' : 'asc';
 
-        $kelompoks = $praktikumId
+        $semuaKelompoks = $praktikumId
             ? Kelompok::where('praktikum_id', $praktikumId)
-                ->orderBy('nama_kelompok')
                 ->get()
             : collect();
 
-        $sesis = $kelompoks
+        $kelompoks = $semuaKelompoks
+            ->filter(fn ($kelompok) => !empty($kelompok->nama_kelompok))
+            ->unique('nama_kelompok')
+            ->sortBy('nama_kelompok', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
+
+        $sesis = $semuaKelompoks
             ->pluck('sesi')
             ->filter()
             ->unique()
-            ->sort()
+            ->sort(SORT_NATURAL)
             ->values();
 
         $prodis = $praktikumId
@@ -673,8 +678,10 @@ class KoordinatorController extends Controller
             });
         }
 
-        if ($request->filled('kelompok_id')) {
-            $query->where('kelompok_id', $request->kelompok_id);
+        if ($request->filled('kelompok')) {
+            $query->whereHas('kelompok', function ($q) use ($request) {
+                $q->where('nama_kelompok', $request->kelompok);
+            });
         }
 
         if ($request->filled('sesi')) {
@@ -703,10 +710,15 @@ class KoordinatorController extends Controller
             $sortDirection
         );
 
+        $perPage = (int) $request->input('per_page', 10);
+        if (!in_array($perPage, [10, 50, 100], true)) {
+            $perPage = 10;
+        }
+
         $praktikans = $this->paginateCollectionKoordinator(
             $hasilSort,
             $request,
-            400
+            $perPage
         );
 
         return view('koordinator.praktikan', compact(
@@ -716,7 +728,8 @@ class KoordinatorController extends Controller
             'kelompoks',
             'sesis',
             'praktikans',
-            'sortDirection'
+            'sortDirection',
+            'perPage'
         ));
     }
 
@@ -807,7 +820,12 @@ class KoordinatorController extends Controller
             });
         }
 
-        $praktikanRows = $praktikanQuery
+        $perPage = (int) $request->input('per_page', 10);
+        if (!in_array($perPage, [10, 50, 100], true)) {
+            $perPage = 10;
+        }
+
+        $allPraktikans = $praktikanQuery
             ->get()
             ->sort(function ($a, $b) {
                 $kelompokA = $a->kelompok->nama_kelompok ?? '';
@@ -823,25 +841,51 @@ class KoordinatorController extends Controller
             })
             ->values();
 
+        $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
+        $totalPraktikans = $allPraktikans->count();
+        $currentItems = $allPraktikans->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+        $praktikanRows = new \Illuminate\Pagination\LengthAwarePaginator(
+            $currentItems,
+            $totalPraktikans,
+            $perPage,
+            $currentPage,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
         $asistensAktif = $praktikumId
             ? Asisten::with('user')
                 ->where('praktikum_id', $praktikumId)
                 ->where('status', 'aktif')
-                ->orderBy('id')
+                ->whereHas('user', function ($q) {
+                    $q->whereIn('name', [
+                        'Aditya Irfan Hadzami',
+                        'Ahmad Fadillah Noor',
+                        'Anang Budi Saputro',
+                        'Angel Syalom Tesalonik',
+                        'Bayu Ramadhani',
+                        'Hanna Amalia',
+                        'Muhammad Rizaldi',
+                        'Muhammad Saiful Dwi Cahya',
+                        'Putri Aldeani',
+                    ]);
+                })
                 ->get()
+                ->sortBy('user.name')
+                ->values()
             : collect();
 
         $asistenPemeriksaMap = collect();
 
-        if ($praktikumId && $kelompokRows->isNotEmpty()) {
-            $asistenPemeriksaMap = AsistenPemeriksaLaporan::where('praktikum_id', $praktikumId)
-                ->whereIn('kelompok_id', $kelompokRows->pluck('id'))
-                ->get()
-                ->mapWithKeys(function ($item) {
-                    return [
-                        $item->kelompok_id . '-' . $item->modul_id => $item->asisten_id,
-                    ];
-                });
+        if ($praktikumId) {
+            $pemeriksaQuery = AsistenPemeriksaLaporan::where('praktikum_id', $praktikumId);
+
+            if ($selectedProdi) {
+                $pemeriksaQuery->where('prodi', $selectedProdi);
+            }
+
+            $asistenPemeriksaMap = $pemeriksaQuery->get()
+                ->pluck('asisten_id', 'modul_id');
         }
 
         return view('koordinator.kelompok', compact(
@@ -855,7 +899,8 @@ class KoordinatorController extends Controller
             'kelompokRows',
             'praktikanRows',
             'asistensAktif',
-            'asistenPemeriksaMap'
+            'asistenPemeriksaMap',
+            'perPage'
         ));
     }
 
@@ -910,8 +955,22 @@ class KoordinatorController extends Controller
         $asistensAktif = Asisten::with('user')
             ->where('praktikum_id', $kelompok->praktikum_id)
             ->where('status', 'aktif')
-            ->orderBy('id')
-            ->get();
+            ->whereHas('user', function ($q) {
+                $q->whereIn('name', [
+                    'Aditya Irfan Hadzami',
+                    'Ahmad Fadillah Noor',
+                    'Anang Budi Saputro',
+                    'Angel Syalom Tesalonik',
+                    'Bayu Ramadhani',
+                    'Hanna Amalia',
+                    'Muhammad Rizaldi',
+                    'Muhammad Saiful Dwi Cahya',
+                    'Putri Aldeani',
+                ]);
+            })
+            ->get()
+            ->sortBy('user.name')
+            ->values();
 
         $asistenPemeriksaMap = AsistenPemeriksaLaporan::where('praktikum_id', $kelompok->praktikum_id)
             ->where('kelompok_id', $kelompok->id)
@@ -974,17 +1033,27 @@ class KoordinatorController extends Controller
 
         $request->validate([
             'praktikum_id' => ['required', 'exists:praktikums,id'],
-            'kelompok_id' => ['required', 'exists:kelompoks,id'],
+            'kelompok_id' => ['nullable', 'exists:kelompoks,id'],
+            'prodi' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $kelompok = Kelompok::where('praktikum_id', $request->praktikum_id)
-            ->findOrFail($request->kelompok_id);
+        $praktikumId = $request->praktikum_id;
+        $prodi = $request->prodi;
+        $kelompokId = $request->kelompok_id;
+
+        $kelompoks = collect();
+        if ($kelompokId) {
+            $kelompoks = Kelompok::where('praktikum_id', $praktikumId)->where('id', $kelompokId)->get();
+        } elseif ($prodi) {
+            $kelompoks = Kelompok::where('praktikum_id', $praktikumId)->where('prodi', $prodi)->get();
+        } else {
+            $kelompoks = Kelompok::where('praktikum_id', $praktikumId)->get();
+        }
 
         /*
         |--------------------------------------------------------------------------
         | Simpan banyak modul sekaligus
         |--------------------------------------------------------------------------
-        | Dipakai untuk halaman detail kelompok dan tabel kelompok.
         */
         if ($request->has('asisten_pemeriksa')) {
             $request->validate([
@@ -993,74 +1062,117 @@ class KoordinatorController extends Controller
             ]);
 
             foreach ($request->input('asisten_pemeriksa', []) as $modulId => $asistenId) {
-                $modul = Modul::where('praktikum_id', $request->praktikum_id)
-                    ->findOrFail($modulId);
+                $modul = Modul::where('praktikum_id', $praktikumId)->findOrFail($modulId);
 
                 if (!empty($asistenId)) {
-                    Asisten::where('praktikum_id', $request->praktikum_id)
+                    Asisten::where('praktikum_id', $praktikumId)
                         ->where('status', 'aktif')
                         ->findOrFail($asistenId);
 
-                    AsistenPemeriksaLaporan::updateOrCreate(
-                        [
-                            'praktikum_id' => $request->praktikum_id,
-                            'kelompok_id' => $kelompok->id,
-                            'modul_id' => $modul->id,
-                        ],
-                        [
-                            'asisten_id' => $asistenId,
-                            'prodi' => $kelompok->prodi,
-                        ]
-                    );
+                    if ($kelompoks->isNotEmpty()) {
+                        foreach ($kelompoks as $k) {
+                            AsistenPemeriksaLaporan::updateOrCreate(
+                                [
+                                    'praktikum_id' => $praktikumId,
+                                    'kelompok_id' => $k->id,
+                                    'modul_id' => $modul->id,
+                                ],
+                                [
+                                    'asisten_id' => $asistenId,
+                                    'prodi' => $k->prodi,
+                                ]
+                            );
+                        }
+                    } else {
+                        AsistenPemeriksaLaporan::updateOrCreate(
+                            [
+                                'praktikum_id' => $praktikumId,
+                                'kelompok_id' => null,
+                                'modul_id' => $modul->id,
+                            ],
+                            [
+                                'asisten_id' => $asistenId,
+                                'prodi' => $prodi,
+                            ]
+                        );
+                    }
                 } else {
-                    AsistenPemeriksaLaporan::where('praktikum_id', $request->praktikum_id)
-                        ->where('kelompok_id', $kelompok->id)
-                        ->where('modul_id', $modul->id)
-                        ->delete();
+                    if ($kelompoks->isNotEmpty()) {
+                        AsistenPemeriksaLaporan::where('praktikum_id', $praktikumId)
+                            ->whereIn('kelompok_id', $kelompoks->pluck('id'))
+                            ->where('modul_id', $modul->id)
+                            ->delete();
+                    } else {
+                        AsistenPemeriksaLaporan::where('praktikum_id', $praktikumId)
+                            ->where('modul_id', $modul->id)
+                            ->when($prodi, fn ($q) => $q->where('prodi', $prodi))
+                            ->delete();
+                    }
                 }
             }
 
-            return back()->with('status', 'Asisten pemeriksa berhasil disimpan.');
+            return back()->with('status', 'Asisten pemeriksa laporan modul berhasil disimpan.');
         }
 
         /*
         |--------------------------------------------------------------------------
         | Simpan satu modul
         |--------------------------------------------------------------------------
-        | Cadangan jika masih ada form lama yang mengirim modul_id dan asisten_id.
         */
         $request->validate([
             'modul_id' => ['required', 'exists:moduls,id'],
             'asisten_id' => ['nullable', 'exists:asistens,id'],
         ]);
 
-        $modul = Modul::where('praktikum_id', $request->praktikum_id)
-            ->findOrFail($request->modul_id);
+        $modul = Modul::where('praktikum_id', $praktikumId)->findOrFail($request->modul_id);
 
         if ($request->filled('asisten_id')) {
-            Asisten::where('praktikum_id', $request->praktikum_id)
+            Asisten::where('praktikum_id', $praktikumId)
                 ->where('status', 'aktif')
                 ->findOrFail($request->asisten_id);
 
-            AsistenPemeriksaLaporan::updateOrCreate(
-                [
-                    'praktikum_id' => $request->praktikum_id,
-                    'kelompok_id' => $kelompok->id,
-                    'modul_id' => $modul->id,
-                ],
-                [
-                    'asisten_id' => $request->asisten_id,
-                    'prodi' => $kelompok->prodi,
-                ]
-            );
+            if ($kelompoks->isNotEmpty()) {
+                foreach ($kelompoks as $k) {
+                    AsistenPemeriksaLaporan::updateOrCreate(
+                        [
+                            'praktikum_id' => $praktikumId,
+                            'kelompok_id' => $k->id,
+                            'modul_id' => $modul->id,
+                        ],
+                        [
+                            'asisten_id' => $request->asisten_id,
+                            'prodi' => $k->prodi,
+                        ]
+                    );
+                }
+            } else {
+                AsistenPemeriksaLaporan::updateOrCreate(
+                    [
+                        'praktikum_id' => $praktikumId,
+                        'kelompok_id' => null,
+                        'modul_id' => $modul->id,
+                    ],
+                    [
+                        'asisten_id' => $request->asisten_id,
+                        'prodi' => $prodi,
+                    ]
+                );
+            }
         } else {
-            AsistenPemeriksaLaporan::where('praktikum_id', $request->praktikum_id)
-                ->where('kelompok_id', $kelompok->id)
-                ->where('modul_id', $modul->id)
-                ->delete();
+            if ($kelompoks->isNotEmpty()) {
+                AsistenPemeriksaLaporan::where('praktikum_id', $praktikumId)
+                    ->whereIn('kelompok_id', $kelompoks->pluck('id'))
+                    ->where('modul_id', $modul->id)
+                    ->delete();
+            } else {
+                AsistenPemeriksaLaporan::where('praktikum_id', $praktikumId)
+                    ->where('modul_id', $modul->id)
+                    ->when($prodi, fn ($q) => $q->where('prodi', $prodi))
+                    ->delete();
+            }
         }
 
-        return back()->with('status', 'Asisten pemeriksa berhasil disimpan.');
+        return back()->with('status', "Asisten pemeriksa Modul {$modul->nomor_modul} ({$modul->nama_modul}) berhasil disimpan.");
     }
 
     public function penilaian(): View
@@ -1208,16 +1320,22 @@ class KoordinatorController extends Controller
         $praktikums = Praktikum::latest()->get();
         $praktikumId = $request->praktikum_id ?? $this->praktikumAktif()?->id;
 
-        $kelompoks = $praktikumId
+        $semuaKelompoks = $praktikumId
             ? Kelompok::where('praktikum_id', $praktikumId)
-                ->orderBy('id')
                 ->get()
             : collect();
 
-        $sesis = $kelompoks
+        $kelompoks = $semuaKelompoks
+            ->filter(fn ($kelompok) => !empty($kelompok->nama_kelompok))
+            ->unique('nama_kelompok')
+            ->sortBy('nama_kelompok', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
+
+        $sesis = $semuaKelompoks
             ->pluck('sesi')
             ->filter()
             ->unique()
+            ->sort(SORT_NATURAL)
             ->values();
 
         $moduls = $praktikumId
@@ -1263,18 +1381,15 @@ class KoordinatorController extends Controller
             $query->where('status', $request->status);
         }
 
-        if ($request->filled('kelompok_id')) {
-            $kelompok = Kelompok::where('praktikum_id', $praktikumId)
-                ->find($request->kelompok_id);
+        if ($request->filled('kelompok')) {
+            $namaKelompok = $request->kelompok;
 
-            if ($kelompok) {
-                $query->where(function ($q) use ($kelompok) {
-                    $q->where('kelompok', $kelompok->nama_kelompok)
-                        ->orWhereHas('praktikan', function ($praktikanQuery) use ($kelompok) {
-                            $praktikanQuery->where('kelompok_id', $kelompok->id);
-                        });
-                });
-            }
+            $query->where(function ($q) use ($namaKelompok) {
+                $q->where('kelompok', $namaKelompok)
+                    ->orWhereHas('praktikan.kelompok', function ($kelompokQuery) use ($namaKelompok) {
+                        $kelompokQuery->where('nama_kelompok', $namaKelompok);
+                    });
+            });
         }
 
         if ($request->filled('sesi')) {
@@ -1371,10 +1486,15 @@ class KoordinatorController extends Controller
         $chartNilaiHurufLabels = $frekuensiNilaiHuruf->keys()->values();
         $chartNilaiHurufData = $frekuensiNilaiHuruf->values();
 
+        $perPage = (int) $request->input('per_page', 10);
+        if (!in_array($perPage, [10, 50, 100], true)) {
+            $perPage = 10;
+        }
+
         $nilaiAkhirs = $this->paginateCollectionKoordinator(
             $hasilNilaiAkhir,
             $request,
-            400
+            $perPage
         );
 
         return view('koordinator.nilai-akhir', compact(
@@ -1383,6 +1503,7 @@ class KoordinatorController extends Controller
             'nilaiAkhirs',
             'prodis',
             'sortDirection',
+            'perPage',
             'frekuensiNilaiHuruf',
             'totalNilaiHuruf',
             'chartNilaiHurufLabels',
@@ -1747,6 +1868,9 @@ class KoordinatorController extends Controller
             'praktikum',
             'praktikan.user',
             'praktikan.kelompok',
+            'praktikan.nilaiHarian',
+            'praktikan.nilaiPenulisanLaporan',
+            'praktikan.nilaiKemampuanPraktikum',
         ]);
 
         if ($praktikumId) {

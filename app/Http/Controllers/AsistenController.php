@@ -50,11 +50,16 @@ class AsistenController extends Controller
                 ->get()
             : collect();
 
-        $kelompoks = $praktikum
+        $semuaKelompoks = $praktikum
             ? Kelompok::where('praktikum_id', $praktikum->id)
-                ->orderBy('id')
                 ->get()
             : collect();
+
+        $kelompoks = $semuaKelompoks
+            ->filter(fn ($kelompok) => !empty($kelompok->nama_kelompok))
+            ->unique('nama_kelompok')
+            ->sortBy('nama_kelompok', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
 
         $moduls = $praktikum
             ? Modul::where('praktikum_id', $praktikum->id)
@@ -237,11 +242,16 @@ class AsistenController extends Controller
                 ->get()
             : collect();
 
-        $kelompoks = $praktikum
+        $semuaKelompoks = $praktikum
             ? Kelompok::where('praktikum_id', $praktikum->id)
-                ->orderBy('id')
                 ->get()
             : collect();
+
+        $kelompoks = $semuaKelompoks
+            ->filter(fn ($kelompok) => !empty($kelompok->nama_kelompok))
+            ->unique('nama_kelompok')
+            ->sortBy('nama_kelompok', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
 
         $prodis = $praktikum
             ? Praktikan::where('praktikum_id', $praktikum->id)
@@ -251,20 +261,26 @@ class AsistenController extends Controller
                 ->pluck('user.prodi')
                 ->filter()
                 ->unique()
+                ->sort()
                 ->values()
             : collect();
 
-        $sesis = $kelompoks->pluck('sesi')->filter()->unique()->values();
+        $sesis = $semuaKelompoks
+            ->pluck('sesi')
+            ->filter()
+            ->unique()
+            ->sort(SORT_NATURAL)
+            ->values();
 
         $rekapScanPresensis = $praktikum && $asisten
-        ? Presensi::with('modul')
-            ->where('praktikum_id', $praktikum->id)
-            ->where('asisten_id', $asisten->id)
-            ->where('qr_code_scanned', true)
-            ->latest('waktu_absen')
-            ->limit(10)
-            ->get()
-        : collect();
+            ? Presensi::with('modul')
+                ->where('praktikum_id', $praktikum->id)
+                ->where('asisten_id', $asisten->id)
+                ->where('qr_code_scanned', true)
+                ->latest('waktu_absen')
+                ->limit(10)
+                ->get()
+            : collect();
 
         if (!$praktikum) {
             $praktikans = collect();
@@ -281,11 +297,18 @@ class AsistenController extends Controller
             ));
         }
 
-        $query = Praktikan::with(['user', 'kelompok', 'nilaiHarian', 'nilaiAkhir'])
+        $query = Praktikan::with([
+            'user',
+            'kelompok',
+            'nilaiHarian',
+            'nilaiAkhir',
+        ])
             ->where('praktikum_id', $praktikum->id);
 
-        if ($request->filled('kelompok_id')) {
-            $query->where('kelompok_id', $request->kelompok_id);
+        if ($request->filled('kelompok')) {
+            $query->whereHas('kelompok', function ($q) use ($request) {
+                $q->where('nama_kelompok', $request->kelompok);
+            });
         }
 
         if ($request->filled('prodi')) {
@@ -309,7 +332,11 @@ class AsistenController extends Controller
             $request->search
         );
 
-        $praktikans = $this->paginateCollection($hasilSearch, $request, 10);
+        $praktikans = $this->paginateCollection(
+            $hasilSearch,
+            $request,
+            10
+        );
 
         return view('asisten.presensi', compact(
             'asisten',
@@ -524,9 +551,12 @@ class AsistenController extends Controller
 
         $kelompoks = $praktikum
             ? Kelompok::where('praktikum_id', $praktikum->id)
-                ->orderBy('id')
                 ->get()
-            : collect();
+                ->filter(fn ($kelompok) => !empty($kelompok->nama_kelompok))
+                ->unique('nama_kelompok')
+                ->sortBy('nama_kelompok', SORT_NATURAL | SORT_FLAG_CASE)
+                ->values()
+            : collect();;
 
         if (!$praktikum) {
             $praktikans = collect();
@@ -564,8 +594,10 @@ class AsistenController extends Controller
             });
         }
 
-        if ($request->filled('kelompok_id')) {
-            $query->where('kelompok_id', $request->kelompok_id);
+        if ($request->filled('kelompok')) {
+            $query->whereHas('kelompok', function ($q) use ($request) {
+                $q->where('nama_kelompok', $request->kelompok);
+            });
         }
 
         if ($request->filled('status_nilai')) {
@@ -1010,6 +1042,8 @@ class AsistenController extends Controller
                     ->delete();
             }
         }
+
+        $this->sinkronNilaiAkhir($praktikumId, $praktikan->id);
     }
 
     private function normalisasiAngka($value): ?float

@@ -87,16 +87,17 @@
                     Kelompok
                 </label>
 
-                <select name="kelompok_id"
-                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
-                    <option value="">Semua Kelompok</option>
+                <select name="kelompok"
+                    class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                <option value="">Semua Kelompok</option>
 
-                    @foreach (($kelompoks ?? collect()) as $kelompok)
-                        <option value="{{ $kelompok->id }}" @selected(request('kelompok_id') == $kelompok->id)>
-                            {{ $kelompok->nama_kelompok }}
-                        </option>
-                    @endforeach
-                </select>
+                @foreach (($kelompoks ?? collect()) as $kelompok)
+                    <option value="{{ $kelompok->nama_kelompok }}"
+                            @selected(request('kelompok') === $kelompok->nama_kelompok)>
+                        {{ $kelompok->nama_kelompok }}
+                    </option>
+                @endforeach
+            </select>
             </div>
 
             <div>
@@ -133,14 +134,28 @@
                 </select>
             </div>
 
-            <div class="xl:col-span-2 flex flex-col sm:flex-row items-end gap-3">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    Tampilkan Isi
+                </label>
+
+                <select name="per_page"
+                        onchange="this.form.submit()"
+                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 bg-blue-50/50 font-bold text-blue-900">
+                    <option value="10" @selected(($perPage ?? request('per_page', 10)) == 10)>10 Baris</option>
+                    <option value="50" @selected(($perPage ?? request('per_page')) == 50)>50 Baris</option>
+                    <option value="100" @selected(($perPage ?? request('per_page')) == 100)>100 Baris</option>
+                </select>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-end gap-3">
                 <button type="submit"
                         class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
                     Cari
                 </button>
 
                 <a href="{{ route('koordinator.praktikan') }}"
-                class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 font-extrabold hover:bg-slate-200 transition text-center">
+                   class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 font-extrabold hover:bg-slate-200 transition text-center">
                     Reset
                 </a>
             </div>
@@ -148,14 +163,22 @@
     </section>
 
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
-        <div class="p-6 border-b border-blue-100">
-            <h2 class="text-2xl font-extrabold text-slate-900">
-                Daftar Praktikan
-            </h2>
+        <div class="p-6 border-b border-blue-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-extrabold text-slate-900">
+                    Daftar Praktikan
+                </h2>
 
-            <p class="text-slate-500 mt-1">
-                Data ditampilkan berdasarkan hasil Sequential Search dan diurutkan dengan Merge Sort.
-            </p>
+                <p class="text-slate-500 mt-1">
+                    Data ditampilkan berdasarkan hasil Sequential Search dan diurutkan dengan Merge Sort.
+                </p>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="inline-flex items-center px-4 py-2 rounded-2xl bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100">
+                    Menampilkan {{ $praktikans->firstItem() ?? 0 }} - {{ $praktikans->lastItem() ?? 0 }} dari {{ $praktikans->total() }} praktikan
+                </span>
+            </div>
         </div>
 
         <div class="p-6 overflow-x-auto">
@@ -218,8 +241,14 @@
                 </tbody>
             </table>
 
-            <div class="mt-6">
-                {{ $praktikans->links() }}
+            <div class="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-slate-100 pt-4">
+                <p class="text-xs text-slate-500 font-semibold">
+                    Halaman {{ $praktikans->currentPage() }} dari {{ $praktikans->lastPage() }} (Total {{ $praktikans->total() }} praktikan)
+                </p>
+
+                <div>
+                    {{ $praktikans->links() }}
+                </div>
             </div>
         </div>
     </section>

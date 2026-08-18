@@ -122,7 +122,21 @@ class FisdasRealDataSeeder extends Seeder
         $this->importPresensiWorkbook($fisdas2, 'Teknik Geologi', 'Copy of ABSEN PRAKTIKUM FISDAS II-TG (Responses).xlsx');
         $this->importPresensiWorkbook($fisdas2, 'Teknik Industri', 'Copy of ABSEN PRAKTIKUM FISDAS II-TI (Responses).xlsx');
 
-        $this->importAsistenPemeriksa($fisdas1, 'Asisten Pemeriksa Fisdas Ganjil 2025.xlsx');
+        $this->importAsistenPemeriksa(
+            $fisdas1,
+            'Asisten Pemeriksa Fisdas Ganjil 2025.xlsx'
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sinkronisasi komponen nilai akhir
+        |--------------------------------------------------------------------------
+        | Nilai akhir sederhana hanya berisi nilai angka dan huruf.
+        | Komponen Kehadiran, Laporan, Responsi, Asistensi, dan Kemampuan Praktik
+        | diambil dari tabel hasil import nilai harian dan nilai lainnya.
+        */
+        $this->sinkronKomponenNilaiAkhir($fisdas1);
+        $this->sinkronKomponenNilaiAkhir($fisdas2);
 
         $this->command?->info('Import selesai.');
         $this->command?->info('Total users: ' . User::count());
@@ -830,6 +844,148 @@ class FisdasRealDataSeeder extends Seeder
         $nilaiHarian->save();
     }
 
+    private function sinkronKomponenNilaiAkhir(Praktikum $praktikum): void
+    {
+        $nilaiAkhirs = NilaiAkhir::where('praktikum_id', $praktikum->id)
+            ->get();
+
+        foreach ($nilaiAkhirs as $nilaiAkhir) {
+            $nilaiHarian = NilaiHarian::where('praktikum_id', $praktikum->id)
+                ->where('praktikan_id', $nilaiAkhir->praktikan_id)
+                ->first();
+
+            $nilaiPenulisanLaporan = NilaiPenulisanLaporan::where(
+                    'praktikum_id',
+                    $praktikum->id
+                )
+                ->where('praktikan_id', $nilaiAkhir->praktikan_id)
+                ->first();
+
+            $nilaiKemampuan = NilaiKemampuanPraktikum::where(
+                    'praktikum_id',
+                    $praktikum->id
+                )
+                ->where('praktikan_id', $nilaiAkhir->praktikan_id)
+                ->first();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Kehadiran
+            |--------------------------------------------------------------------------
+            */
+            $kehadiran = $nilaiHarian?->rata_rata_kehadiran;
+
+            if ($kehadiran === null && $nilaiHarian) {
+                $dataKehadiran = $this->arrayNilai(
+                    $nilaiHarian->kehadiran
+                );
+
+                if (!empty($dataKehadiran)) {
+                    $kehadiran = $this->hitungRataKehadiran(
+                        $dataKehadiran,
+                        $praktikum
+                    );
+                }
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Laporan
+            |--------------------------------------------------------------------------
+            */
+            $laporan = $nilaiHarian?->laporan;
+
+            if ($laporan === null) {
+                $laporan = $nilaiPenulisanLaporan?->nilai_akhir;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Responsi
+            |--------------------------------------------------------------------------
+            */
+            $responsi = $nilaiHarian?->rata_rata_responsi;
+
+            if ($responsi === null && $nilaiHarian) {
+                $dataResponsi = $this->arrayNilai(
+                    $nilaiHarian->responsi
+                );
+
+                if (!empty($dataResponsi)) {
+                    $responsi = $this->rataRata(
+                        array_values($dataResponsi)
+                    );
+                }
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Asistensi
+            |--------------------------------------------------------------------------
+            */
+            $asistensi = $nilaiHarian?->rata_rata_asistensi;
+
+            if ($asistensi === null && $nilaiHarian) {
+                $dataAsistensi = $this->arrayNilai(
+                    $nilaiHarian->asistensi
+                );
+
+                if (!empty($dataAsistensi)) {
+                    $asistensi = $this->rataRata(
+                        array_values($dataAsistensi)
+                    );
+                }
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Kemampuan Praktik
+            |--------------------------------------------------------------------------
+            */
+            $kemampuanPraktik = $nilaiHarian?->rata_rata_kemampuan_praktik;
+
+            if ($kemampuanPraktik === null && $nilaiHarian) {
+                $dataKemampuan = $this->arrayNilai(
+                    $nilaiHarian->kemampuan_praktik
+                );
+
+                if (!empty($dataKemampuan)) {
+                    $kemampuanPraktik = $this->rataRata(
+                        array_values($dataKemampuan)
+                    );
+                }
+            }
+
+            if ($kemampuanPraktik === null) {
+                $kemampuanPraktik = $nilaiKemampuan?->rata_rata_akhir;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Update Nilai Akhir
+            |--------------------------------------------------------------------------
+            | Nilai dari sheet NILAI AKHIR tetap dipertahankan apabila sudah ada.
+            | Fallback hanya dipakai ketika komponennya masih null.
+            */
+            $nilaiAkhir->update([
+                'kehadiran' => $nilaiAkhir->kehadiran ?? $kehadiran,
+                'laporan' => $nilaiAkhir->laporan ?? $laporan,
+                'responsi' => $nilaiAkhir->responsi ?? $responsi,
+                'asistensi' => $nilaiAkhir->asistensi ?? $asistensi,
+                'kemampuan_praktik' => $nilaiAkhir->kemampuan_praktik ?? $kemampuanPraktik,
+            ]);
+        }
+
+        $this->command?->info(
+            'Sinkronisasi komponen nilai akhir selesai: '
+            . $praktikum->nama
+            . ' - '
+            . $praktikum->semester
+            . ' '
+            . $praktikum->tahun_akademik
+        );
+    }
+
     private function getOrCreatePraktikan(
         Praktikum $praktikum,
         string $prodi,
@@ -850,7 +1006,7 @@ class FisdasRealDataSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role' => 'praktikan',
                 'prodi' => $prodi,
-                'jenis_kelamin' => null,
+                'jenis_kelamin' => $this->guessGenderFromName($nama),
                 'nomor_ponsel' => null,
                 'auth_provider' => 'email',
                 'profile_completed' => true,
@@ -913,7 +1069,7 @@ class FisdasRealDataSeeder extends Seeder
                 'role' => 'asisten',
                 'nim' => null,
                 'prodi' => 'Asisten Laboratorium',
-                'jenis_kelamin' => null,
+                'jenis_kelamin' => $this->guessGenderFromName($nama),
                 'nomor_ponsel' => null,
                 'auth_provider' => 'email',
                 'profile_completed' => true,
@@ -952,7 +1108,7 @@ class FisdasRealDataSeeder extends Seeder
                 'role' => 'asisten',
                 'nim' => null,
                 'prodi' => 'Asisten Laboratorium',
-                'jenis_kelamin' => null,
+                'jenis_kelamin' => $this->guessGenderFromName($nama),
                 'nomor_ponsel' => null,
                 'auth_provider' => 'email',
                 'profile_completed' => true,
@@ -1086,6 +1242,27 @@ class FisdasRealDataSeeder extends Seeder
         return round($values->avg(), 2);
     }
 
+    private function arrayNilai($value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if ($value instanceof \Illuminate\Support\Collection) {
+            return $value->all();
+        }
+
+        if (is_string($value) && trim($value) !== '') {
+            $decoded = json_decode($value, true);
+
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return [];
+    }
+
     private function parseTanggal($value): ?\DateTime
     {
         if ($value instanceof \DateTime) {
@@ -1207,11 +1384,92 @@ class FisdasRealDataSeeder extends Seeder
 
     private function cellValue($sheet, int $col, int $row)
     {
-        return $this->cell($sheet, $col, $row)->getValue();
+        $val = $this->cell($sheet, $col, $row)->getValue();
+
+        if (is_string($val) && str_starts_with($val, '=')) {
+            try {
+                return $this->cell($sheet, $col, $row)->getCalculatedValue() ?? $val;
+            } catch (\Throwable $e) {
+                return $val;
+            }
+        }
+
+        return $val;
     }
 
     private function cellCalculated($sheet, int $col, int $row)
     {
-        return $this->cell($sheet, $col, $row)->getCalculatedValue();
+        $val = $this->cell($sheet, $col, $row)->getValue();
+
+        if (is_string($val) && str_starts_with($val, '=')) {
+            try {
+                return $this->cell($sheet, $col, $row)->getCalculatedValue() ?? $val;
+            } catch (\Throwable $e) {
+                return $val;
+            }
+        }
+
+        return $val;
+    }
+
+    private function guessGenderFromName(string $name): string
+    {
+        $nameLower = strtolower(trim($name));
+
+        $asistenKnownGender = [
+            'hanna amalia' => 'P',
+            'putri aldeani' => 'P',
+            'angel syalom tesalonik' => 'P',
+            'muhammad saiful dwi cahya' => 'L',
+            'muhammad rizaldi' => 'L',
+            'ahmad fadillah noor' => 'L',
+            'aditya irfan hadzami' => 'L',
+            'anang budi saputro' => 'L',
+            'bayu ramadhani' => 'L',
+            'asisten praktikum' => 'L',
+        ];
+
+        if (isset($asistenKnownGender[$nameLower])) {
+            return $asistenKnownGender[$nameLower];
+        }
+
+        $femaleKeywords = [
+            'putri', 'nur', 'siti', 'ayu', 'anisa', 'annisa', 'rahma', 'rahmah', 'zahra', 'nabila',
+            'nabillah', 'amelia', 'amalia', 'fatimah', 'fitri', 'fitriani', 'lestari', 'wulandari',
+            'novita', 'dewi', 'dwi lestari', 'indah', 'suci', 'safitri', 'khairunnisa', 'khairunisa',
+            'nadia', 'nadya', 'tiara', 'angel', 'syalom', 'grace', 'claudia', 'mariana', 'maria',
+            'elizabeth', 'agnes', 'theresia', 'cynthia', 'sherly', 'vania', 'tasya', 'syifa', 'aulia',
+            'dinda', 'cantika', 'maya', 'widya', 'ratna', 'puspa', 'anggraeni', 'anggraini', 'kusuma',
+            'intan', 'mutiara', 'salwa', 'farah', 'syahira', 'alya', 'aura', 'berlian', 'chelsea',
+            'dian', 'erika', 'fadilla', 'fadilah', 'gina', 'hana', 'hasna', 'ica', 'isya', 'jasmine',
+            'karina', 'laras', 'maharani', 'mey', 'nayla', 'olivia', 'pratiwi', 'qonita', 'rani',
+            'salsabila', 'tania', 'ulfa', 'vivi', 'windy', 'yulia', 'zahira', 'nurlina', 'marisa',
+            'nadira', 'shafa', 'karimah', 'hildayanti', 'jihan', 'najwa', 'talitha', 'adinda'
+        ];
+
+        $maleKeywords = [
+            'muhammad', 'mohammad', 'mochammad', 'muhamad', 'ahmad', 'achmad', 'fadil', 'fadillah',
+            'rizky', 'rizki', 'rizaldi', 'saiful', 'budi', 'bayu', 'aditya', 'anang', 'irfan',
+            'agung', 'bagus', 'dimas', 'fajar', 'hendra', 'ilham', 'joko', 'krisna', 'lukman',
+            'mahendra', 'naufal', 'oscar', 'pratama', 'putra', 'ridho', 'satria', 'taufiq', 'taufik',
+            'wahyu', 'yusuf', 'zaki', 'danendra', 'danapati', 'mouses', 'rinaldi', 'syihabudin',
+            'almas', 'sabil', 'gafur', 'fathir', 'rozzaq', 'setiawan', 'akbar', 'dzakiy', 'haidar',
+            'bima', 'gilang', 'hafiz', 'ihsan', 'kevin', 'luthfi', 'miftah', 'najib', 'pandu',
+            'raihan', 'rendy', 'syahrul', 'tegar', 'vincensius', 'wildan', 'yordan', 'zulfikar'
+        ];
+
+        foreach ($femaleKeywords as $kw) {
+            if (preg_match('/\b' . preg_quote($kw, '/') . '\b/i', $nameLower)) {
+                return 'P';
+            }
+        }
+
+        foreach ($maleKeywords as $kw) {
+            if (preg_match('/\b' . preg_quote($kw, '/') . '\b/i', $nameLower)) {
+                return 'L';
+            }
+        }
+
+        return (crc32($name) % 2 === 0) ? 'L' : 'P';
     }
 }

@@ -383,7 +383,7 @@ class FisdasJadwalKelompokRealDataSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role' => 'praktikan',
                 'prodi' => $prodi,
-                'jenis_kelamin' => null,
+                'jenis_kelamin' => $this->guessGenderFromName($nama),
                 'nomor_ponsel' => null,
                 'auth_provider' => 'email',
                 'profile_completed' => true,
@@ -562,5 +562,49 @@ class FisdasJadwalKelompokRealDataSeeder extends Seeder
         }
 
         return [null, $label];
+    }
+
+    private function guessGenderFromName(string $name): string
+    {
+        $nameLower = strtolower(trim($name));
+
+        $femaleKeywords = [
+            'putri', 'nur', 'siti', 'ayu', 'anisa', 'annisa', 'rahma', 'rahmah', 'zahra', 'nabila',
+            'nabillah', 'amelia', 'amalia', 'fatimah', 'fitri', 'fitriani', 'lestari', 'wulandari',
+            'novita', 'dewi', 'dwi lestari', 'indah', 'suci', 'safitri', 'khairunnisa', 'khairunisa',
+            'nadia', 'nadya', 'tiara', 'angel', 'syalom', 'grace', 'claudia', 'mariana', 'maria',
+            'elizabeth', 'agnes', 'theresia', 'cynthia', 'sherly', 'vania', 'tasya', 'syifa', 'aulia',
+            'dinda', 'cantika', 'maya', 'widya', 'ratna', 'puspa', 'anggraeni', 'anggraini', 'kusuma',
+            'intan', 'mutiara', 'salwa', 'farah', 'syahira', 'alya', 'aura', 'berlian', 'chelsea',
+            'dian', 'erika', 'fadilla', 'fadilah', 'gina', 'hana', 'hasna', 'ica', 'isya', 'jasmine',
+            'karina', 'laras', 'maharani', 'mey', 'nayla', 'olivia', 'pratiwi', 'qonita', 'rani',
+            'salsabila', 'tania', 'ulfa', 'vivi', 'windy', 'yulia', 'zahira', 'nurlina', 'marisa',
+            'nadira', 'shafa', 'karimah', 'hildayanti', 'jihan', 'najwa', 'talitha', 'adinda'
+        ];
+
+        $maleKeywords = [
+            'muhammad', 'mohammad', 'mochammad', 'muhamad', 'ahmad', 'achmad', 'fadil', 'fadillah',
+            'rizky', 'rizki', 'rizaldi', 'saiful', 'budi', 'bayu', 'aditya', 'anang', 'irfan',
+            'agung', 'bagus', 'dimas', 'fajar', 'hendra', 'ilham', 'joko', 'krisna', 'lukman',
+            'mahendra', 'naufal', 'oscar', 'pratama', 'putra', 'ridho', 'satria', 'taufiq', 'taufik',
+            'wahyu', 'yusuf', 'zaki', 'danendra', 'danapati', 'mouses', 'rinaldi', 'syihabudin',
+            'almas', 'sabil', 'gafur', 'fathir', 'rozzaq', 'setiawan', 'akbar', 'dzakiy', 'haidar',
+            'bima', 'gilang', 'hafiz', 'ihsan', 'kevin', 'luthfi', 'miftah', 'najib', 'pandu',
+            'raihan', 'rendy', 'syahrul', 'tegar', 'vincensius', 'wildan', 'yordan', 'zulfikar'
+        ];
+
+        foreach ($femaleKeywords as $kw) {
+            if (preg_match('/\b' . preg_quote($kw, '/') . '\b/i', $nameLower)) {
+                return 'P';
+            }
+        }
+
+        foreach ($maleKeywords as $kw) {
+            if (preg_match('/\b' . preg_quote($kw, '/') . '\b/i', $nameLower)) {
+                return 'L';
+            }
+        }
+
+        return (crc32($name) % 2 === 0) ? 'L' : 'P';
     }
 }

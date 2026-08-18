@@ -1,7 +1,7 @@
 @extends('layouts.koordinator', ['title' => 'Presensi Praktikan'])
 
 @section('content')
-<div class="space-y-8">
+<div class="space-y-8 max-w-full overflow-x-hidden">
 
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
         <h1 class="text-3xl font-extrabold text-slate-900">
@@ -97,12 +97,13 @@
                     Kelompok
                 </label>
 
-                <select name="kelompok_id"
+                <select name="kelompok"
                         class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
                     <option value="">Semua Kelompok</option>
 
                     @foreach (($kelompoks ?? collect()) as $kelompok)
-                        <option value="{{ $kelompok->id }}" @selected(request('kelompok_id') == $kelompok->id)>
+                        <option value="{{ $kelompok->nama_kelompok }}"
+                                @selected(request('kelompok') === $kelompok->nama_kelompok)>
                             {{ $kelompok->nama_kelompok }}
                         </option>
                     @endforeach
@@ -140,21 +141,51 @@
         </form>
     </section>
 
-    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
-        <div class="p-6 overflow-x-auto">
-            <table class="w-full min-w-[1350px] text-sm">
+    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden max-w-full">
+        <div class="p-6 max-w-full overflow-hidden">
+
+            <table class="w-full table-fixed text-[11px]">
                 <thead>
                     <tr class="bg-slate-100 text-slate-700">
-                        <th class="p-3 text-center rounded-l-xl">Timestamp</th>
-                        <th class="p-3 text-center">Modul</th>
-                        <th class="p-3 text-center">Asisten</th>
-                        <th class="p-3 text-center">NIM</th>
-                        <th class="p-3 text-center">Nama</th>
-                        <th class="p-3 text-center">Prodi</th>
-                        <th class="p-3 text-center">Kelompok</th>
-                        <th class="p-3 text-center">Sesi</th>
-                        <th class="p-3 text-center">Status</th>
-                        <th class="p-3 text-center rounded-r-xl">Keterangan</th>
+                        <th class="w-[10%] p-2 text-center rounded-l-xl">
+                            Timestamp
+                        </th>
+
+                        <th class="w-[13%] p-2 text-center">
+                            Modul
+                        </th>
+
+                        <th class="w-[13%] p-2 text-center">
+                            Asisten
+                        </th>
+
+                        <th class="w-[9%] p-2 text-center">
+                            NIM
+                        </th>
+
+                        <th class="w-[11%] p-2 text-center">
+                            Nama
+                        </th>
+
+                        <th class="w-[10%] p-2 text-center">
+                            Prodi
+                        </th>
+
+                        <th class="w-[8%] p-2 text-center">
+                            Kelompok
+                        </th>
+
+                        <th class="w-[7%] p-2 text-center">
+                            Sesi
+                        </th>
+
+                        <th class="w-[7%] p-2 text-center">
+                            Status
+                        </th>
+
+                        <th class="w-[12%] p-2 text-center rounded-r-xl">
+                            Keterangan
+                        </th>
                     </tr>
                 </thead>
 
@@ -169,62 +200,94 @@
                                 default => 'bg-slate-100 text-slate-500',
                             };
 
-                            $nomorModul = ($moduls ?? collect())->pluck('id')->search($presensi->modul_id);
+                            $nomorModul = ($moduls ?? collect())
+                                ->pluck('id')
+                                ->search($presensi->modul_id);
                         @endphp
 
-                        <tr class="hover:bg-blue-50/40 transition">
-                            <td class="p-3 text-center whitespace-nowrap">
-                                {{ $presensi->waktu_absen ? $presensi->waktu_absen->format('d/m/Y H:i:s') : '-' }}
+                        <tr class="hover:bg-blue-50/40 transition align-top">
+
+                            {{-- Timestamp --}}
+                            <td class="p-2 text-center break-words">
+                                {{ $presensi->waktu_absen
+                                    ? $presensi->waktu_absen->format('d/m/Y H:i:s')
+                                    : '-' }}
                             </td>
 
-                            <td class="p-3 text-center whitespace-nowrap">
+                            {{-- Modul --}}
+                            <td class="p-2 text-center break-words">
                                 @if ($nomorModul !== false)
-                                    Modul {{ $nomorModul + 1 }}
-                                    <div class="text-xs text-slate-500 mt-1">
+                                    <div class="font-bold text-slate-800">
+                                        Modul {{ $nomorModul + 1 }}
+                                    </div>
+
+                                    <div class="text-[10px] leading-relaxed text-slate-500 mt-1 break-words">
                                         {{ $presensi->modul->nama_modul ?? '-' }}
                                     </div>
                                 @else
-                                    {{ $presensi->modul->nama_modul ?? '-' }}
+                                    <span class="break-words">
+                                        {{ $presensi->modul->nama_modul ?? '-' }}
+                                    </span>
                                 @endif
                             </td>
 
-                            <td class="p-3 text-center">
+                            {{-- Asisten --}}
+                            <td class="p-2 text-center break-all">
                                 {{ $presensi->asisten->user->email ?? '-' }}
                             </td>
 
-                            <td class="p-3 text-center">
-                                {{ $presensi->nim ?? $presensi->praktikan->user->nim ?? '-' }}
+                            {{-- NIM --}}
+                            <td class="p-2 text-center font-bold break-words">
+                                {{ $presensi->nim
+                                    ?? $presensi->praktikan->user->nim
+                                    ?? '-' }}
                             </td>
 
-                            <td class="p-3 text-center font-semibold">
-                                {{ $presensi->nama ?? $presensi->praktikan->user->name ?? '-' }}
+                            {{-- Nama --}}
+                            <td class="p-2 text-center font-semibold break-words">
+                                {{ $presensi->nama
+                                    ?? $presensi->praktikan->user->name
+                                    ?? '-' }}
                             </td>
 
-                            <td class="p-3 text-center">
+                            {{-- Prodi --}}
+                            <td class="p-2 text-center break-words">
                                 {{ $presensi->praktikan->user->prodi ?? '-' }}
                             </td>
 
-                            <td class="p-3 text-center">
-                                {{ $presensi->kelompok ?? $presensi->praktikan->kelompok->nama_kelompok ?? '-' }}
+                            {{-- Kelompok --}}
+                            <td class="p-2 text-center break-words">
+                                {{ $presensi->kelompok
+                                    ?? $presensi->praktikan->kelompok->nama_kelompok
+                                    ?? '-' }}
                             </td>
 
-                            <td class="p-3 text-center">
-                                {{ $presensi->sesi ?? $presensi->praktikan->kelompok->sesi ?? '-' }}
+                            {{-- Sesi --}}
+                            <td class="p-2 text-center break-words">
+                                {{ $presensi->sesi
+                                    ?? $presensi->praktikan->kelompok->sesi
+                                    ?? '-' }}
                             </td>
 
-                            <td class="p-3 text-center">
-                                <span class="px-3 py-1 rounded-full font-bold text-xs {{ $statusClass }}">
-                                    {{ $presensi->status ? ucfirst($presensi->status) : '-' }}
+                            {{-- Status --}}
+                            <td class="p-2 text-center">
+                                <span class="inline-flex justify-center px-2 py-1 rounded-full font-bold text-[10px] {{ $statusClass }}">
+                                    {{ $presensi->status
+                                        ? ucfirst($presensi->status)
+                                        : '-' }}
                                 </span>
                             </td>
 
-                            <td class="p-3 text-center">
+                            {{-- Keterangan --}}
+                            <td class="p-2 text-center break-words">
                                 {{ $presensi->keterangan ?? '-' }}
                             </td>
+
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="p-5 text-center text-slate-500">
+                            <td colspan="10"
+                                class="p-5 text-center text-slate-500">
                                 Data presensi belum tersedia.
                             </td>
                         </tr>
@@ -232,9 +295,10 @@
                 </tbody>
             </table>
 
-            <div class="mt-6">
+            <div class="mt-6 max-w-full">
                 {{ $presensis->links() }}
             </div>
+
         </div>
     </section>
 

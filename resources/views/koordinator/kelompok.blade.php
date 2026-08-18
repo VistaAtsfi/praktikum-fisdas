@@ -13,7 +13,7 @@
         </p>
     </section>
 
-    @if ($errors->any())
+    @if (isset($errors) && $errors->any())
         <section class="bg-red-50 border border-red-100 rounded-3xl p-6">
             <h2 class="font-extrabold text-red-700 mb-3">
                 Terjadi kesalahan input:
@@ -148,7 +148,7 @@
         <div class="p-6 border-b border-blue-100">
             <form method="GET"
                 action="{{ route('koordinator.kelompok') }}"
-                class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+                class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
 
                 <input type="text"
                     name="search"
@@ -187,6 +187,14 @@
                     @endforeach
                 </select>
 
+                <select name="per_page"
+                        onchange="this.form.submit()"
+                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 font-semibold text-slate-700">
+                    <option value="10" @selected(($perPage ?? 10) == 10)>Tampilkan 10 Isi</option>
+                    <option value="50" @selected(($perPage ?? 10) == 50)>Tampilkan 50 Isi</option>
+                    <option value="100" @selected(($perPage ?? 10) == 100)>Tampilkan 100 Isi</option>
+                </select>
+
                 <div class="flex flex-col sm:flex-row gap-3">
                     <button type="submit"
                             class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
@@ -201,15 +209,23 @@
             </form>
         </div>
 
-        {{-- Judul Tabel --}}
-        <div class="p-6 border-b border-blue-100 text-center">
-            <h2 class="text-2xl font-extrabold text-slate-900">
-                Kelompok Praktikum Fisika Dasar {{ request('prodi') ?: 'Semua Program Studi' }}
-            </h2>
+        {{-- Judul Tabel & Info Jumlah --}}
+        <div class="p-6 border-b border-blue-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-center md:text-left">
+            <div>
+                <h2 class="text-2xl font-extrabold text-slate-900">
+                    Kelompok Praktikum Fisika Dasar {{ request('prodi') ? ': ' . request('prodi') : '' }}
+                </h2>
 
-            <p class="text-slate-500 mt-1">
-                Laboratorium Layanan Dasar
-            </p>
+                <p class="text-slate-500 mt-1">
+                    Laboratorium Layanan Dasar
+                </p>
+            </div>
+
+            <div class="flex items-center justify-center md:justify-end gap-2">
+                <span class="text-xs font-extrabold px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                    Menampilkan {{ $praktikanRows->firstItem() ?? 0 }} - {{ $praktikanRows->lastItem() ?? 0 }} dari {{ $praktikanRows->total() }} Praktikan
+                </span>
+            </div>
         </div>
 
         {{-- Tabel Desktop --}}
@@ -231,7 +247,7 @@
                         @forelse ($praktikanRows as $praktikan)
                             <tr class="hover:bg-blue-50/40 transition">
                                 <td class="p-3 text-center">
-                                    {{ $loop->iteration }}
+                                    {{ ($praktikanRows->currentPage() - 1) * $praktikanRows->perPage() + $loop->iteration }}
                                 </td>
 
                                 <td class="p-3 text-center break-words">
@@ -321,6 +337,12 @@
                     </div>
                 @endforelse
             </div>
+
+            @if ($praktikanRows->hasPages())
+                <div class="mt-6 pt-4 border-t border-slate-100">
+                    {{ $praktikanRows->links() }}
+                </div>
+            @endif
         </div>
     </section>
 
@@ -380,61 +402,47 @@
                 </p>
             </div>
 
-            <div class="w-full rounded-2xl border border-blue-100 overflow-hidden">
-                <table class="w-full table-fixed text-xs xl:text-sm">
+            <div class="w-full rounded-2xl border border-blue-100 overflow-hidden shadow-xs">
+                <table class="w-full text-xs xl:text-sm">
                     <thead>
-                        <tr class="bg-slate-100 text-slate-800 border-b border-blue-100">
-                            <th rowspan="2"
-                                class="w-[110px] border-r border-blue-100 px-2 py-3 text-center font-extrabold">
-                                Kelompok
-                            </th>
-
-                            <th colspan="{{ max($moduls->count(), 1) }}"
-                                class="border-r border-blue-100 px-2 py-3 text-center font-extrabold">
-                                Asisten Pemeriksa
-                            </th>
-
-                            <th rowspan="2"
-                                class="w-[100px] px-2 py-3 text-center font-extrabold">
-                                Aksi
-                            </th>
-                        </tr>
-
                         <tr class="bg-slate-100 text-slate-700 border-b border-blue-100">
-                            @forelse ($moduls as $modul)
-                                <th class="border-r border-blue-100 px-2 py-3 text-center font-bold">
-                                    Modul {{ $loop->iteration }}
-                                </th>
-                            @empty
-                                <th class="px-2 py-3 text-center font-bold">
-                                    Modul
-                                </th>
-                            @endforelse
+                            <th class="w-[70px] px-4 py-3.5 text-center font-extrabold">No.</th>
+                            <th class="w-[160px] px-4 py-3.5 text-left font-extrabold">Modul</th>
+                            <th class="px-4 py-3.5 text-left font-extrabold">Nama Modul Praktikum</th>
+                            <th class="w-[320px] px-4 py-3.5 text-left font-extrabold">Asisten Pemeriksa Laporan</th>
+                            <th class="w-[120px] px-4 py-3.5 text-center font-extrabold">Aksi</th>
                         </tr>
                     </thead>
 
-                    <tbody class="divide-y divide-slate-100">
-                        @forelse ($kelompokRows as $kelompok)
+                    <tbody class="divide-y divide-blue-50">
+                        @forelse ($moduls as $modul)
                             @php
-                                $formId = 'form-asisten-pemeriksa-' . $kelompok->id;
+                                $selectedAsisten = $asistenPemeriksaMap[$modul->id] ?? null;
                             @endphp
 
                             <tr class="hover:bg-blue-50/40 transition">
-                                <td class="px-2 py-3 text-center font-extrabold text-slate-900 border-r border-slate-100 break-words">
-                                    {{ $kelompok->nama_kelompok }}
-                                </td>
+                                <form method="POST" action="{{ route('koordinator.kelompok.asisten-pemeriksa.store') }}">
+                                    @csrf
+                                    <input type="hidden" name="praktikum_id" value="{{ $praktikumId }}">
+                                    <input type="hidden" name="prodi" value="{{ request('prodi') }}">
+                                    <input type="hidden" name="modul_id" value="{{ $modul->id }}">
 
-                                @forelse ($moduls as $modul)
-                                    @php
-                                        $selectedAsisten = $asistenPemeriksaMap[$kelompok->id . '-' . $modul->id] ?? null;
-                                    @endphp
+                                    <td class="px-4 py-3.5 text-center font-bold text-slate-500">
+                                        {{ $loop->iteration }}
+                                    </td>
 
-                                    <td class="px-1 py-3 text-center align-middle border-r border-slate-100">
-                                        <select name="asisten_pemeriksa[{{ $modul->id }}]"
-                                                form="{{ $formId }}"
-                                                class="w-full min-w-0 rounded-xl border-slate-200 text-[11px] xl:text-xs focus:border-blue-500 focus:ring-blue-500">
-                                            <option value="">-</option>
+                                    <td class="px-4 py-3.5 font-black text-blue-900 whitespace-nowrap">
+                                        Modul {{ $modul->nomor_modul }}
+                                    </td>
 
+                                    <td class="px-4 py-3.5 font-semibold text-slate-800">
+                                        {{ $modul->nama_modul }}
+                                    </td>
+
+                                    <td class="px-4 py-3.5">
+                                        <select name="asisten_id"
+                                                class="w-full rounded-xl border-slate-200 text-xs focus:border-blue-500 focus:ring-blue-500 font-semibold text-slate-800">
+                                            <option value="">-- Pilih Asisten Pemeriksa --</option>
                                             @foreach ($asistensAktif as $asisten)
                                                 <option value="{{ $asisten->id }}" @selected($selectedAsisten == $asisten->id)>
                                                     {{ $asisten->user->name ?? '-' }}
@@ -442,33 +450,19 @@
                                             @endforeach
                                         </select>
                                     </td>
-                                @empty
-                                    <td class="px-3 py-4 text-center text-slate-500">
-                                        Modul belum tersedia.
-                                    </td>
-                                @endforelse
 
-                                <td class="px-2 py-3 text-center">
-                                    <form id="{{ $formId }}"
-                                        method="POST"
-                                        action="{{ route('koordinator.kelompok.asisten-pemeriksa.store') }}">
-                                        @csrf
-
-                                        <input type="hidden" name="praktikum_id" value="{{ $praktikumId }}">
-                                        <input type="hidden" name="kelompok_id" value="{{ $kelompok->id }}">
-
+                                    <td class="px-4 py-3.5 text-center whitespace-nowrap">
                                         <button type="submit"
-                                                class="inline-flex px-4 py-2 rounded-xl bg-blue-700 text-white font-bold hover:bg-blue-800 transition text-xs">
+                                                class="px-4 py-2 rounded-xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition text-xs shadow-xs">
                                             Simpan
                                         </button>
-                                    </form>
-                                </td>
+                                    </td>
+                                </form>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ $moduls->count() + 2 }}"
-                                    class="px-4 py-6 text-center text-slate-500">
-                                    Data kelompok pada filter ini belum tersedia.
+                                <td colspan="5" class="px-4 py-6 text-center text-slate-500">
+                                    Data modul praktikum belum tersedia.
                                 </td>
                             </tr>
                         @endforelse

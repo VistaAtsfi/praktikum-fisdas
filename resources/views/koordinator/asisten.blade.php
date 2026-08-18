@@ -1,7 +1,8 @@
 @extends('layouts.koordinator', ['title' => 'Data Asisten'])
 
 @section('content')
-<div class="space-y-8" x-data="asistenKoordinatorForm()">
+<div class="space-y-8 max-w-full overflow-x-hidden"
+     x-data="asistenKoordinatorForm()">
 
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
         <h1 class="text-3xl font-extrabold text-slate-900">
@@ -306,42 +307,69 @@
             </form>
         </div>
 
-        <div class="p-6 overflow-x-auto">
-            <table class="w-full min-w-[1600px] text-sm">
+        <div class="p-6 max-w-full overflow-hidden">
+            <table class="w-full table-fixed text-xs">
                 <thead>
                     <tr class="bg-slate-100 text-slate-800">
-                        <th class="p-3 text-center rounded-l-xl">Email</th>
-                        <th class="p-3 text-center">Nama</th>
-                        <th class="p-3 text-center">NIM</th>
-                        <th class="p-3 text-center">Prodi</th>
-                        <th class="p-3 text-center">Jenis Kelamin</th>
-                        <th class="p-3 text-center">No. Ponsel</th>
-                        <th class="p-3 text-center">Praktikum</th>
-                        <th class="p-3 text-center">Status</th>
-                        <th class="p-3 text-center rounded-r-xl">Reset Password</th>
+                        <th class="w-[14%] p-2 text-center rounded-l-xl">
+                            Email
+                        </th>
+
+                        <th class="w-[12%] p-2 text-center">
+                            Nama
+                        </th>
+
+                        <th class="w-[9%] p-2 text-center">
+                            NIM
+                        </th>
+
+                        <th class="w-[11%] p-2 text-center">
+                            Prodi
+                        </th>
+
+                        <th class="w-[9%] p-2 text-center">
+                            Jenis Kelamin
+                        </th>
+
+                        <th class="w-[10%] p-2 text-center">
+                            No. Ponsel
+                        </th>
+
+                        <th class="w-[12%] p-2 text-center">
+                            Praktikum
+                        </th>
+
+                        <th class="w-[8%] p-2 text-center">
+                            Status
+                        </th>
+
+                        <th class="w-[15%] p-2 text-center rounded-r-xl">
+                            Reset Password
+                        </th>
                     </tr>
                 </thead>
 
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($asistens as $asisten)
-                        <tr class="hover:bg-blue-50/40 transition">
-                            <td class="p-3 text-center whitespace-nowrap">
+                        <tr class="hover:bg-blue-50/40 transition align-top">
+
+                            <td class="p-2 text-center break-all">
                                 {{ $asisten->user->email ?? '-' }}
                             </td>
 
-                            <td class="p-3 text-center font-semibold">
+                            <td class="p-2 text-center font-semibold break-words">
                                 {{ $asisten->user->name ?? '-' }}
                             </td>
 
-                            <td class="p-3 text-center whitespace-nowrap">
+                            <td class="p-2 text-center break-words">
                                 {{ $asisten->user->nim ?? '-' }}
                             </td>
 
-                            <td class="p-3 text-center">
+                            <td class="p-2 text-center break-words">
                                 {{ $asisten->user->prodi ?? '-' }}
                             </td>
 
-                            <td class="p-3 text-center">
+                            <td class="p-2 text-center break-words">
                                 {{ match ($asisten->user->jenis_kelamin ?? null) {
                                     'L' => 'Laki-laki',
                                     'P' => 'Perempuan',
@@ -349,31 +377,31 @@
                                 } }}
                             </td>
 
-                            <td class="p-3 text-center whitespace-nowrap">
+                            <td class="p-2 text-center break-words">
                                 {{ $asisten->user->nomor_ponsel ?? '-' }}
                             </td>
 
-                            <td class="p-3 text-center">
+                            <td class="p-2 text-center break-words">
                                 {{ $asisten->praktikum->nama ?? '-' }}
                             </td>
 
-                            <td class="p-3 text-center">
+                            <td class="p-2 text-center">
                                 @if (($asisten->status ?? null) === 'aktif')
-                                    <span class="px-3 py-1 rounded-full bg-green-100 text-green-700 font-bold text-xs">
+                                    <span class="inline-flex px-2 py-1 rounded-full bg-green-100 text-green-700 font-bold text-[10px]">
                                         Aktif
                                     </span>
                                 @else
-                                    <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-500 font-bold text-xs">
+                                    <span class="inline-flex px-2 py-1 rounded-full bg-slate-100 text-slate-500 font-bold text-[10px]">
                                         Nonaktif
                                     </span>
                                 @endif
                             </td>
 
-                            <td class="p-3">
+                            <td class="p-2">
                                 <form method="POST"
-                                      action="{{ route('koordinator.asisten.reset-password', $asisten) }}"
-                                      x-data="{ showPassword: false, showConfirmation: false }"
-                                      class="grid grid-cols-[180px_180px_auto] gap-2 items-center">
+                                    action="{{ route('koordinator.asisten.reset-password', $asisten) }}"
+                                    x-data="{ showPassword: false, showConfirmation: false }"
+                                    class="space-y-2">
                                     @csrf
                                     @method('PATCH')
 
@@ -381,11 +409,12 @@
                                         <input :type="showPassword ? 'text' : 'password'"
                                             name="password"
                                             placeholder="Password baru"
-                                            class="w-full rounded-xl border-slate-200 pr-10 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                            class="w-full min-w-0 rounded-xl border-slate-200 pr-8 text-[11px] focus:border-blue-500 focus:ring-blue-500">
 
                                         <button type="button"
                                                 @click="showPassword = !showPassword"
-                                                class="absolute inset-y-0 right-3 flex items-center text-slate-500 hover:text-blue-700 transition">
+                                                class="absolute inset-y-0 right-2 flex items-center text-slate-500 hover:text-blue-700 transition">
+
                                             <svg x-show="!showPassword"
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 class="w-4 h-4"
@@ -393,9 +422,11 @@
                                                 viewBox="0 0 24 24"
                                                 stroke="currentColor"
                                                 stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                <path stroke-linecap="round"
+                                                    stroke-linejoin="round"
                                                     d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12s-3.75 6.75-9.75 6.75S2.25 12 2.25 12z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                <path stroke-linecap="round"
+                                                    stroke-linejoin="round"
                                                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                             </svg>
 
@@ -406,13 +437,17 @@
                                                 viewBox="0 0 24 24"
                                                 stroke="currentColor"
                                                 stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                <path stroke-linecap="round"
+                                                    stroke-linejoin="round"
                                                     d="M3 3l18 18" />
-                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                <path stroke-linecap="round"
+                                                    stroke-linejoin="round"
                                                     d="M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42" />
-                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                <path stroke-linecap="round"
+                                                    stroke-linejoin="round"
                                                     d="M9.88 5.43A10.4 10.4 0 0112 5.25c6 0 9.75 6.75 9.75 6.75a16.1 16.1 0 01-3.18 3.91" />
-                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                <path stroke-linecap="round"
+                                                    stroke-linejoin="round"
                                                     d="M6.61 6.61C3.82 8.5 2.25 12 2.25 12s3.75 6.75 9.75 6.75c1.43 0 2.76-.38 3.96-1" />
                                             </svg>
                                         </button>
@@ -422,11 +457,12 @@
                                         <input :type="showConfirmation ? 'text' : 'password'"
                                             name="password_confirmation"
                                             placeholder="Konfirmasi"
-                                            class="w-full rounded-xl border-slate-200 pr-10 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                            class="w-full min-w-0 rounded-xl border-slate-200 pr-8 text-[11px] focus:border-blue-500 focus:ring-blue-500">
 
                                         <button type="button"
                                                 @click="showConfirmation = !showConfirmation"
-                                                class="absolute inset-y-0 right-3 flex items-center text-slate-500 hover:text-blue-700 transition">
+                                                class="absolute inset-y-0 right-2 flex items-center text-slate-500 hover:text-blue-700 transition">
+
                                             <svg x-show="!showConfirmation"
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 class="w-4 h-4"
@@ -434,9 +470,11 @@
                                                 viewBox="0 0 24 24"
                                                 stroke="currentColor"
                                                 stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                <path stroke-linecap="round"
+                                                    stroke-linejoin="round"
                                                     d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12s-3.75 6.75-9.75 6.75S2.25 12 2.25 12z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                <path stroke-linecap="round"
+                                                    stroke-linejoin="round"
                                                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                             </svg>
 
@@ -447,20 +485,24 @@
                                                 viewBox="0 0 24 24"
                                                 stroke="currentColor"
                                                 stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                <path stroke-linecap="round"
+                                                    stroke-linejoin="round"
                                                     d="M3 3l18 18" />
-                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                <path stroke-linecap="round"
+                                                    stroke-linejoin="round"
                                                     d="M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42" />
-                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                <path stroke-linecap="round"
+                                                    stroke-linejoin="round"
                                                     d="M9.88 5.43A10.4 10.4 0 0112 5.25c6 0 9.75 6.75 9.75 6.75a16.1 16.1 0 01-3.18 3.91" />
-                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                <path stroke-linecap="round"
+                                                    stroke-linejoin="round"
                                                     d="M6.61 6.61C3.82 8.5 2.25 12 2.25 12s3.75 6.75 9.75 6.75c1.43 0 2.76-.38 3.96-1" />
                                             </svg>
                                         </button>
                                     </div>
 
                                     <button type="submit"
-                                            class="px-4 py-2 rounded-xl bg-blue-700 text-white font-bold text-xs hover:bg-blue-800 transition">
+                                            class="w-full px-3 py-2 rounded-xl bg-blue-700 text-white font-bold text-[11px] hover:bg-blue-800 transition">
                                         Reset
                                     </button>
                                 </form>
@@ -468,7 +510,8 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="p-5 text-center text-slate-500">
+                            <td colspan="9"
+                                class="p-5 text-center text-slate-500">
                                 Data asisten belum tersedia.
                             </td>
                         </tr>
