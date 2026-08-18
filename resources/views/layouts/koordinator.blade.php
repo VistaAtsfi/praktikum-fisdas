@@ -15,8 +15,8 @@
 </head>
 
 <body class="bg-slate-50 text-slate-800"
-      x-data="{ sidebarOpen: false }"
-      @keydown.escape.window="sidebarOpen = false">
+      x-data="{ sidebarOpen: false, logoutModal: false }"
+      @keydown.escape.window="sidebarOpen = false; logoutModal = false">
 
     <div class="min-h-screen flex">
 
@@ -123,14 +123,14 @@
             </nav>
 
             <div class="p-4 border-t border-blue-100">
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-
-                    <button type="submit"
-                            class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-red-600 text-white font-bold hover:bg-red-700 transition">
-                        <span>Keluar</span>
-                    </button>
-                </form>
+                <button type="button"
+                        @click="logoutModal = true"
+                        class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-red-600 text-white font-bold hover:bg-red-700 transition cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Keluar</span>
+                </button>
             </div>
         </aside>
 
@@ -163,6 +163,46 @@
 
                 @yield('content')
             </main>
+        </div>
+    </div>
+
+    {{-- Modal Konfirmasi Logout --}}
+    <div x-cloak
+         x-show="logoutModal"
+         x-transition.opacity
+         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs px-4">
+        <div @click.outside="logoutModal = false"
+             x-transition
+             class="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-red-100 overflow-hidden">
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 mx-auto rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-3xl mb-4">
+                    🚪
+                </div>
+
+                <h2 class="text-2xl font-extrabold text-slate-900">
+                    Konfirmasi Keluar
+                </h2>
+
+                <p class="text-slate-500 mt-2 text-sm leading-relaxed">
+                    Apakah Anda yakin ingin keluar dari sistem?
+                </p>
+            </div>
+
+            <div class="px-6 pb-6 grid grid-cols-2 gap-3">
+                <button type="button"
+                        @click="logoutModal = false"
+                        class="px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 font-extrabold hover:bg-slate-200 transition cursor-pointer">
+                    Batal
+                </button>
+
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit"
+                            class="w-full px-5 py-3 rounded-2xl bg-red-600 text-white font-extrabold hover:bg-red-700 transition shadow-sm cursor-pointer">
+                        Ya, Keluar
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
