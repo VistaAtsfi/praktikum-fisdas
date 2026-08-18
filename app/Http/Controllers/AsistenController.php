@@ -106,6 +106,10 @@ class AsistenController extends Controller
             })
             ->values();
 
+        $praktikanBelumAsistensiByProdi = $praktikanBelumAsistensi
+            ->groupBy(fn ($p) => $p->user?->prodi ?: 'Lainnya')
+            ->sortKeys();
+
         return view('asisten.beranda', compact(
             'asisten',
             'praktikum',
@@ -114,7 +118,8 @@ class AsistenController extends Controller
             'moduls',
             'jumlahMateri',
             'jumlahPresensi',
-            'praktikanBelumAsistensi'
+            'praktikanBelumAsistensi',
+            'praktikanBelumAsistensiByProdi'
         ));
     }
 
@@ -354,16 +359,62 @@ class AsistenController extends Controller
     {
         $this->pastikanAsisten();
 
+        $asisten = $this->asisten();
+        $praktikum = $asisten?->praktikum;
+
+        abort_if(!$asisten || !$praktikum, 403);
+
+        // Jika form mengirimkan batch presensi sekaligus
+        if ($request->has('presensi') && is_array($request->presensi)) {
+            $praktikanIds = array_keys($request->presensi);
+            $praktikans = Praktikan::with(['user', 'kelompok'])
+                ->where('praktikum_id', $praktikum->id)
+                ->whereIn('id', $praktikanIds)
+                ->get()
+                ->keyBy('id');
+
+            $moduls = Modul::where('praktikum_id', $praktikum->id)
+                ->get()
+                ->keyBy('id');
+
+            foreach ($request->presensi as $pId => $modulStatuses) {
+                $praktikan = $praktikans->get($pId);
+                if (!$praktikan || !is_array($modulStatuses)) {
+                    continue;
+                }
+
+                foreach ($modulStatuses as $mId => $status) {
+                    $modul = $moduls->get($mId);
+                    if (!$modul) {
+                        continue;
+                    }
+
+                    if (!in_array($status, ['kosong', 'hadir', 'sakit', 'izin', 'alpa', '', null])) {
+                        continue;
+                    }
+
+                    $statusVal = ($status === 'kosong' || empty($status)) ? null : $status;
+
+                    $this->simpanStatusPresensi(
+                        asisten: $asisten,
+                        praktikumId: $praktikum->id,
+                        praktikan: $praktikan,
+                        modul: $modul,
+                        status: $statusVal,
+                        qrScanned: false
+                    );
+                }
+            }
+
+            return back()->with('status', 'Semua perubahan presensi berhasil disimpan.');
+        }
+
+        // Fallback untuk single update
         $request->validate([
             'praktikan_id' => ['required', 'exists:praktikans,id'],
             'modul_id' => ['required', 'exists:moduls,id'],
             'status' => ['nullable', 'in:kosong,hadir,sakit,izin,alpa'],
         ]);
-
-        $asisten = $this->asisten();
-        $praktikum = $asisten?->praktikum;
-
-        abort_if(!$asisten || !$praktikum, 403);
 
         $praktikan = Praktikan::with(['user', 'kelompok'])
             ->where('praktikum_id', $praktikum->id)
@@ -372,7 +423,7 @@ class AsistenController extends Controller
         $modul = Modul::where('praktikum_id', $praktikum->id)
             ->findOrFail($request->modul_id);
 
-        $status = $request->status === 'kosong' ? null : $request->status;
+        $status = ($request->status === 'kosong' || empty($request->status)) ? null : $request->status;
 
         $this->simpanStatusPresensi(
             asisten: $asisten,
@@ -383,7 +434,7 @@ class AsistenController extends Controller
             qrScanned: false
         );
 
-        return back()->with('status', 'Status presensi berhasil diperbarui.');
+        return back()->with('status', 'Status presensi berhasil disimpan.');
     }
 
     public function scanQr(Request $request): JsonResponse

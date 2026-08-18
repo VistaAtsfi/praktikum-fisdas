@@ -87,92 +87,179 @@
         </div>
     </section>
 
-    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
-        <h2 class="text-2xl font-extrabold text-slate-900 text-center mb-6">
-            Data Kelompok
-        </h2>
+    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden"
+             x-data="{
+                activeProdiTab: '{{ $praktikanBelumAsistensiByProdi->keys()->first() ?? '' }}'
+             }">
+        
+        {{-- Section Header & KPI Stats --}}
+        <div class="p-6 border-b border-blue-100">
+            <h2 class="text-2xl font-extrabold text-slate-900 text-center mb-6">
+                Data Aktivitas Praktikum
+            </h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div class="rounded-2xl bg-blue-50 border border-blue-100 p-5 text-center">
-                <p class="text-sm text-blue-700 font-bold">Jumlah Kelompok</p>
-                <h3 class="text-3xl font-extrabold text-slate-900 mt-2">{{ $kelompoks->count() }}</h3>
-            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="rounded-2xl bg-blue-50 border border-blue-100 p-5 text-center">
+                    <p class="text-xs font-bold text-blue-700 uppercase tracking-wider">Jumlah Kelompok</p>
+                    <h3 class="text-3xl font-black text-slate-900 mt-2">{{ $kelompoks->count() }}</h3>
+                </div>
 
-            <div class="rounded-2xl bg-blue-50 border border-blue-100 p-5 text-center">
-                <p class="text-sm text-blue-700 font-bold">Jumlah Praktikan</p>
-                <h3 class="text-3xl font-extrabold text-slate-900 mt-2">{{ $praktikans->count() }}</h3>
-            </div>
+                <div class="rounded-2xl bg-blue-50 border border-blue-100 p-5 text-center">
+                    <p class="text-xs font-bold text-blue-700 uppercase tracking-wider">Jumlah Praktikan</p>
+                    <h3 class="text-3xl font-black text-slate-900 mt-2">{{ $praktikans->count() }}</h3>
+                </div>
 
-            <div class="rounded-2xl bg-blue-50 border border-blue-100 p-5 text-center">
-                <p class="text-sm text-blue-700 font-bold">Jumlah Materi</p>
-                <h3 class="text-3xl font-extrabold text-slate-900 mt-2">{{ $jumlahMateri }}</h3>
-            </div>
+                <div class="rounded-2xl bg-blue-50 border border-blue-100 p-5 text-center">
+                    <p class="text-xs font-bold text-blue-700 uppercase tracking-wider">Jumlah Materi</p>
+                    <h3 class="text-3xl font-black text-slate-900 mt-2">{{ $jumlahMateri }}</h3>
+                </div>
 
-            <div class="rounded-2xl bg-blue-50 border border-blue-100 p-5 text-center">
-                <p class="text-sm text-blue-700 font-bold">Total Presensi</p>
-                <h3 class="text-3xl font-extrabold text-slate-900 mt-2">{{ $jumlahPresensi }}</h3>
+                <div class="rounded-2xl bg-blue-50 border border-blue-100 p-5 text-center">
+                    <p class="text-xs font-bold text-blue-700 uppercase tracking-wider">Total Presensi</p>
+                    <h3 class="text-3xl font-black text-slate-900 mt-2">{{ $jumlahPresensi }}</h3>
+                </div>
             </div>
         </div>
 
-        <p class="font-bold text-slate-800 mb-3">
-            Praktikan yang belum melakukan asistensi:
-        </p>
+        {{-- Sub-header Monitoring Belum Asistensi --}}
+        <div class="px-6 py-4 bg-slate-50 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <h3 class="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                    <span>⚠️</span>
+                    <span>Praktikan yang Belum Melakukan Asistensi</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Daftar praktikan yang belum memiliki nilai asistensi pada satu atau lebih modul praktikum.
+                </p>
+            </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full min-w-[800px] text-sm">
-                <thead>
-                    <tr class="bg-slate-100">
-                        <th class="p-3 text-center rounded-l-xl">NIM</th>
-                        <th class="p-3 text-center">Nama</th>
-                        <th class="p-3 text-center">No. Ponsel</th>
-                        <th class="p-3 text-center">Email</th>
-                        <th class="p-3 text-center">Prodi</th>
-                        <th class="p-3 text-center">Belum Asistensi</th>
-                        <th class="p-3 text-center rounded-r-xl">Aksi</th>
-                    </tr>
-                </thead>
+            <span class="text-xs font-black px-3.5 py-1.5 rounded-full {{ $praktikanBelumAsistensi->count() > 0 ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200' }} self-start sm:self-auto">
+                Total: {{ $praktikanBelumAsistensi->count() }} Praktikan
+            </span>
+        </div>
 
-                <tbody class="divide-y divide-slate-100">
-                    @forelse ($praktikanBelumAsistensi as $praktikan)
-                        <tr>
-                            <td class="p-3 text-center">{{ $praktikan->user->nim ?? '-' }}</td>
-                            <td class="p-3 text-center font-semibold">{{ $praktikan->user->name ?? '-' }}</td>
-                            <td class="p-3 text-center">{{ $praktikan->user->nomor_ponsel ?? '-' }}</td>
-                            <td class="p-3 text-center">{{ $praktikan->user->email ?? '-' }}</td>
-                            <td class="p-3 text-center">{{ $praktikan->user->prodi ?? '-' }}</td>
-                            <td class="p-3">
-                                <div class="space-y-2">
-                                    @forelse (($praktikan->modul_belum_asistensi ?? collect()) as $modul)
-                                        <div class="rounded-2xl bg-amber-50 border border-amber-100 px-3 py-2 text-xs">
-                                            <p class="font-extrabold text-amber-700">
-                                                Pertemuan {{ $modul['pertemuan'] }}
-                                            </p>
-                                            <p class="text-slate-500 mt-1">
-                                                {{ $modul['nama_modul'] ?? '-' }}
-                                            </p>
-                                        </div>
+        @if ($praktikanBelumAsistensiByProdi->isNotEmpty())
+            {{-- Tab Navigasi Per Prodi --}}
+            <div class="bg-slate-50/70 border-b border-slate-200 px-6 py-3.5">
+                <div class="flex items-center gap-2 overflow-x-auto pb-1">
+                    <span class="text-xs font-extrabold text-slate-500 uppercase tracking-wider shrink-0 mr-2 flex items-center gap-1.5">
+                        <span>🏛️</span>
+                        <span>Program Studi:</span>
+                    </span>
+
+                    @foreach ($praktikanBelumAsistensiByProdi as $prodiName => $listPraktikan)
+                        <button type="button"
+                                @click="activeProdiTab = '{{ $prodiName }}'"
+                                :class="activeProdiTab === '{{ $prodiName }}'
+                                    ? 'bg-blue-700 text-white shadow-md'
+                                    : 'bg-white text-slate-700 hover:bg-blue-50 border border-slate-200 hover:border-blue-200'"
+                                class="px-4 py-2 rounded-2xl text-xs font-extrabold transition-all duration-150 shrink-0 flex items-center gap-2 cursor-pointer">
+                            <span>{{ $prodiName }}</span>
+                            <span :class="activeProdiTab === '{{ $prodiName }}' ? 'bg-blue-800/80 text-blue-100' : 'bg-amber-100 text-amber-800'"
+                                  class="px-2 py-0.5 rounded-lg text-[10px] font-black">
+                                {{ $listPraktikan->count() }}
+                            </span>
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+
+            {{-- Isi Tabel per Prodi --}}
+            <div class="p-6">
+                @foreach ($praktikanBelumAsistensiByProdi as $prodiName => $listPraktikan)
+                    <div x-cloak
+                         x-show="activeProdiTab === '{{ $prodiName }}'"
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 translate-y-1"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         class="space-y-4">
+
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-sm font-black text-slate-800 flex items-center gap-2">
+                                <span>🏛️</span>
+                                <span>{{ $prodiName }}</span>
+                                <span class="text-xs font-bold text-slate-500">({{ $listPraktikan->count() }} praktikan belum tuntas asistensi)</span>
+                            </h4>
+                        </div>
+
+                        <div class="overflow-x-auto rounded-2xl border border-slate-200 shadow-xs">
+                            <table class="w-full min-w-[850px] text-sm">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-700 font-extrabold text-xs uppercase tracking-wider">
+                                        <th class="p-3.5 text-center">NIM</th>
+                                        <th class="p-3.5 text-center">Nama</th>
+                                        <th class="p-3.5 text-center">Kelompok</th>
+                                        <th class="p-3.5 text-center">No. Ponsel</th>
+                                        <th class="p-3.5 text-center">Email</th>
+                                        <th class="p-3.5 text-center">Belum Asistensi</th>
+                                        <th class="p-3.5 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody class="divide-y divide-slate-100 bg-white">
+                                    @forelse ($listPraktikan as $praktikan)
+                                        <tr class="hover:bg-blue-50/40 transition">
+                                            <td class="p-3.5 text-center font-bold text-slate-800">{{ $praktikan->user->nim ?? '-' }}</td>
+                                            <td class="p-3.5 text-center font-semibold text-slate-900">{{ $praktikan->user->name ?? '-' }}</td>
+                                            <td class="p-3.5 text-center">
+                                                <span class="inline-block px-2.5 py-1 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 text-xs font-bold">
+                                                    {{ $praktikan->kelompok?->nama_kelompok ?? '-' }}
+                                                </span>
+                                            </td>
+                                            <td class="p-3.5 text-center text-slate-600">{{ $praktikan->user->nomor_ponsel ?? '-' }}</td>
+                                            <td class="p-3.5 text-center text-slate-600">{{ $praktikan->user->email ?? '-' }}</td>
+                                            <td class="p-3.5">
+                                                <div class="flex flex-wrap gap-1.5 justify-center max-w-xs mx-auto">
+                                                    @forelse (($praktikan->modul_belum_asistensi ?? collect()) as $modul)
+                                                        <div class="rounded-xl bg-amber-50 border border-amber-200/80 px-2.5 py-1.5 text-xs text-center">
+                                                            <p class="font-extrabold text-amber-800">
+                                                                Pertemuan {{ $modul['pertemuan'] }}
+                                                            </p>
+                                                            <p class="text-[11px] text-slate-500 truncate max-w-[140px]" title="{{ $modul['nama_modul'] ?? '-' }}">
+                                                                {{ $modul['nama_modul'] ?? '-' }}
+                                                            </p>
+                                                        </div>
+                                                    @empty
+                                                        <span class="text-slate-400">-</span>
+                                                    @endforelse
+                                                </div>
+                                            </td>
+                                            <td class="p-3.5 text-center">
+                                                <a href="{{ route('asisten.penilaian.show', $praktikan) }}"
+                                                   class="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl bg-blue-700 text-white text-xs font-extrabold hover:bg-blue-800 transition shadow-xs cursor-pointer">
+                                                    <span>Lihat</span>
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </a>
+                                            </td>
+                                        </tr>
                                     @empty
-                                        <span class="text-slate-400">-</span>
+                                        <tr>
+                                            <td colspan="7" class="p-6 text-center text-slate-500">
+                                                Tidak ada data praktikan pada program studi ini.
+                                            </td>
+                                        </tr>
                                     @endforelse
-                                </div>
-                            </td>
-                            <td class="p-3 text-center">
-                                <a href="{{ route('asisten.penilaian.show', $praktikan) }}"
-                                   class="inline-flex px-3 py-2 rounded-xl bg-blue-700 text-white font-bold hover:bg-blue-800 transition">
-                                    Lihat
-                                </a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="p-5 text-center text-slate-500">
-                                Tidak ada data praktikan yang perlu ditampilkan.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <div class="p-12 text-center">
+                <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl font-black mx-auto mb-3">
+                    ✓
+                </div>
+                <h4 class="text-base font-extrabold text-slate-900">
+                    Semua Asistensi Praktikum Selesai!
+                </h4>
+                <p class="text-sm text-slate-500 mt-1">
+                    Semua praktikan telah menyelesaikan seluruh asistensi modul praktikum.
+                </p>
+            </div>
+        @endif
     </section>
 
 </div>

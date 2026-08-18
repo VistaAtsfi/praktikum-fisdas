@@ -1,47 +1,69 @@
 @extends('layouts.asisten', ['title' => 'Presensi Praktikan'])
 
 @section('content')
-<div class="space-y-8">
+<div class="space-y-8 w-full max-w-full">
 
+    {{-- Header Section --}}
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
-        <h1 class="text-3xl font-extrabold text-slate-900">
-            Presensi Praktikan
-        </h1>
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">
+                    Presensi Praktikan
+                </h1>
 
-        <p class="text-slate-500 mt-2">
-            Kelola presensi praktikan melalui scan QR atau input manual.
-        </p>
+                <p class="text-slate-500 mt-2 max-w-2xl leading-relaxed">
+                    Kelola dan pantau presensi kehadiran praktikan melalui pemindaian kamera QR Code atau pengisian manual.
+                </p>
+            </div>
+
+            <div class="flex items-center gap-3 shrink-0">
+                <button type="button"
+                        id="btn-open-scanner"
+                        class="px-5 py-3.5 rounded-2xl bg-gradient-to-r from-blue-700 to-indigo-700 text-white font-extrabold shadow-md hover:shadow-lg hover:from-blue-800 hover:to-indigo-800 transition flex items-center gap-2.5 cursor-pointer">
+                    <span class="text-lg">📷</span>
+                    <span>Scan QR Praktikan</span>
+                </button>
+            </div>
+        </div>
     </section>
 
-    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
-        <form method="GET" action="{{ route('asisten.presensi') }}" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    {{-- Status Alert --}}
+    @if (session('status'))
+        <section class="bg-emerald-50 border border-emerald-200 rounded-3xl p-5 text-emerald-800 font-bold flex items-center gap-3 shadow-sm">
+            <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 text-base font-black">
+                ✓
+            </div>
             <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">Cari Praktikan</label>
+                {{ session('status') }}
+            </div>
+        </section>
+    @endif
+
+    {{-- Filter Praktikan --}}
+    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
+        <h2 class="text-lg font-black text-slate-900 mb-4 flex items-center gap-2">
+            <span>🔍</span>
+            <span>Filter Data Praktikan</span>
+        </h2>
+
+        <form method="GET" action="{{ route('asisten.presensi') }}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-2">Cari Praktikan</label>
                 <input type="text"
                        name="search"
                        value="{{ request('search') }}"
-                       placeholder="Cari NIM atau nama praktikan"
-                       class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
-                <p class="text-xs text-slate-400 mt-2">
-                    Pencarian menggunakan Sequential Search.
+                       placeholder="NIM atau nama praktikan..."
+                       class="w-full rounded-2xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500 placeholder:text-slate-400">
+                <p class="text-[11px] text-slate-400 mt-1.5">
+                    Pencarian Sequential Search
                 </p>
             </div>
 
             <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">Scan QR</label>
-                <button type="button"
-                        id="btn-open-scanner"
-                        class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left font-semibold text-slate-600 hover:border-blue-300 hover:bg-blue-50 transition">
-                    📷 Scan QR Praktikan
-                </button>
-            </div>
-
-            <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">Saring Berdasarkan Kelompok</label>
+                <label class="block text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-2">Kelompok</label>
                 <select name="kelompok"
-                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                        class="w-full rounded-2xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
                     <option value="">Semua Kelompok</option>
-
                     @foreach ($kelompoks as $kelompok)
                         <option value="{{ $kelompok->nama_kelompok }}"
                                 @selected(request('kelompok') === $kelompok->nama_kelompok)>
@@ -52,9 +74,9 @@
             </div>
 
             <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">Saring Berdasarkan Prodi</label>
+                <label class="block text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-2">Program Studi</label>
                 <select name="prodi"
-                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                        class="w-full rounded-2xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
                     <option value="">Semua Prodi</option>
                     @foreach ($prodis as $prodi)
                         <option value="{{ $prodi }}" @selected(request('prodi') == $prodi)>
@@ -65,9 +87,9 @@
             </div>
 
             <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">Saring Berdasarkan Sesi</label>
+                <label class="block text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-2">Sesi</label>
                 <select name="sesi"
-                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                        class="w-full rounded-2xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
                     <option value="">Semua Sesi</option>
                     @foreach ($sesis as $sesi)
                         <option value="{{ $sesi }}" @selected(request('sesi') == $sesi)>
@@ -77,105 +99,105 @@
                 </select>
             </div>
 
-            <div class="flex items-end gap-3">
+            <div class="md:col-span-2 lg:col-span-4 flex items-center justify-end gap-3 pt-2">
+                <a href="{{ route('asisten.presensi') }}"
+                   class="px-5 py-2.5 rounded-2xl bg-slate-100 text-slate-700 text-sm font-extrabold hover:bg-slate-200 transition cursor-pointer">
+                    Reset Filter
+                </a>
+
                 <button type="submit"
-                        class="px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
+                        class="px-6 py-2.5 rounded-2xl bg-blue-700 text-white text-sm font-extrabold hover:bg-blue-800 transition shadow-sm cursor-pointer">
                     Terapkan Filter
                 </button>
-
-                <a href="{{ route('asisten.presensi') }}"
-                   class="px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 font-extrabold hover:bg-slate-200 transition">
-                    Reset
-                </a>
             </div>
         </form>
 
+        {{-- Scanner Panel (Camera & Result Form) --}}
         <div id="scanner-panel"
-             class="hidden mt-6 rounded-3xl border border-blue-100 bg-blue-50/40 p-5">
+             class="hidden mt-6 rounded-3xl border border-blue-200 bg-blue-50/40 p-6">
 
-            <div class="flex flex-col lg:flex-row gap-6">
-                <div class="lg:w-1/2">
+            <div class="flex flex-col lg:flex-row gap-6 max-w-full">
+                {{-- Camera Viewfinder --}}
+                <div class="lg:w-1/2 min-w-0">
                     <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-lg font-extrabold text-slate-900">
-                            Kamera Scan QR
+                        <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                            <span>📷</span>
+                            <span>Kamera Pemindai QR</span>
                         </h3>
 
                         <button type="button"
                                 id="btn-stop-scanner"
-                                class="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition">
-                            Berhenti
+                                class="px-3.5 py-1.5 rounded-xl bg-red-600 text-white text-xs font-extrabold hover:bg-red-700 transition cursor-pointer">
+                            Tutup Kamera
                         </button>
                     </div>
 
                     <div id="qr-reader"
-                         class="w-full overflow-hidden rounded-2xl bg-white border border-blue-100">
+                         class="w-full overflow-hidden rounded-2xl bg-white border border-blue-100 shadow-xs">
                     </div>
 
-                    <p id="scan-message" class="mt-3 text-sm font-semibold text-slate-600">
+                    <p id="scan-message" class="mt-3 text-xs font-bold text-slate-600">
                         Arahkan kamera ke QR Code praktikan.
                     </p>
                 </div>
 
-                <div class="lg:w-1/2">
+                {{-- Result Form --}}
+                <div class="lg:w-1/2 min-w-0">
                     <form method="POST"
                           action="{{ route('asisten.presensi.scan.store') }}"
                           id="scan-form"
-                          class="hidden bg-white rounded-2xl border border-blue-100 p-5">
+                          class="hidden bg-white rounded-2xl border border-blue-100 p-5 shadow-xs space-y-4">
                         @csrf
 
                         <input type="hidden" name="qr_code" id="scan_qr_code">
 
-                        <h3 class="text-xl font-extrabold text-slate-900 mb-4">
-                            Data Hasil Scan
-                        </h3>
-
-                        <div class="overflow-x-auto mb-5">
-                            <table class="w-full text-sm border border-slate-200">
-                                <tbody>
-                                    <tr>
-                                        <td class="border border-slate-200 p-2 font-bold bg-slate-50">Timestamp</td>
-                                        <td class="border border-slate-200 p-2" id="scan_timestamp">-</td>
-                                    </tr>
-
-                                    <tr>
-                                        <td class="border border-slate-200 p-2 font-bold bg-slate-50">Email Address</td>
-                                        <td class="border border-slate-200 p-2" id="scan_email_asisten">-</td>
-                                    </tr>
-
-                                    <tr>
-                                        <td class="border border-slate-200 p-2 font-bold bg-slate-50">NIM</td>
-                                        <td class="border border-slate-200 p-2" id="scan_nim">-</td>
-                                    </tr>
-
-                                    <tr>
-                                        <td class="border border-slate-200 p-2 font-bold bg-slate-50">Nama</td>
-                                        <td class="border border-slate-200 p-2" id="scan_nama">-</td>
-                                    </tr>
-
-                                    <tr>
-                                        <td class="border border-slate-200 p-2 font-bold bg-slate-50">Kelompok</td>
-                                        <td class="border border-slate-200 p-2" id="scan_kelompok">-</td>
-                                    </tr>
-
-                                    <tr>
-                                        <td class="border border-slate-200 p-2 font-bold bg-slate-50">Sesi Praktikum</td>
-                                        <td class="border border-slate-200 p-2" id="scan_sesi">-</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                            <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                                <span>🎯</span>
+                                <span>Data Hasil Scan</span>
+                            </h3>
+                            <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
+                                Teridentifikasi
+                            </span>
                         </div>
 
-                        <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-2.5 text-xs">
+                            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase">Timestamp</p>
+                                <p class="font-bold text-slate-900 mt-0.5" id="scan_timestamp">-</p>
+                            </div>
+                            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase">NIM</p>
+                                <p class="font-bold text-slate-900 mt-0.5" id="scan_nim">-</p>
+                            </div>
+                            <div class="col-span-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase">Nama Praktikan</p>
+                                <p class="font-bold text-slate-900 mt-0.5 text-sm" id="scan_nama">-</p>
+                            </div>
+                            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase">Kelompok</p>
+                                <p class="font-bold text-blue-700 mt-0.5" id="scan_kelompok">-</p>
+                            </div>
+                            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase">Sesi</p>
+                                <p class="font-bold text-slate-900 mt-0.5" id="scan_sesi">-</p>
+                            </div>
+                            <div class="col-span-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase">Email</p>
+                                <p class="font-medium text-slate-700 mt-0.5 break-all" id="scan_email_asisten">-</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 pt-2">
                             <div>
-                                <label class="block text-sm font-bold text-slate-700 mb-2">
+                                <label class="block text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-1.5">
                                     Pertemuan / Modul
                                 </label>
 
                                 <select name="modul_id"
                                         required
-                                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                                        class="w-full rounded-xl border-slate-200 text-xs focus:border-blue-500 focus:ring-blue-500">
                                     <option value="">Pilih Pertemuan</option>
-
                                     @foreach ($moduls as $modul)
                                         <option value="{{ $modul->id }}">
                                             Pertemuan {{ $loop->iteration }} - {{ $modul->nama_modul }}
@@ -185,13 +207,13 @@
                             </div>
 
                             <div>
-                                <label class="block text-sm font-bold text-slate-700 mb-2">
+                                <label class="block text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-1.5">
                                     Status Kehadiran
                                 </label>
 
                                 <select name="status"
                                         required
-                                        class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500">
+                                        class="w-full rounded-xl border-slate-200 text-xs focus:border-blue-500 focus:ring-blue-500">
                                     <option value="">Pilih Status</option>
                                     <option value="hadir">Hadir</option>
                                     <option value="sakit">Sakit</option>
@@ -201,15 +223,17 @@
                             </div>
 
                             <button type="submit"
-                                    class="w-full px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
-                                Simpan Presensi
+                                    class="w-full px-5 py-3 rounded-xl bg-blue-700 text-white text-xs font-extrabold hover:bg-blue-800 transition shadow-sm cursor-pointer">
+                                Simpan Presensi Scan
                             </button>
                         </div>
                     </form>
 
                     <div id="scan-empty"
-                         class="bg-white rounded-2xl border border-blue-100 p-6 text-center text-slate-500">
-                        Data praktikan akan muncul setelah QR berhasil discan.
+                         class="bg-white rounded-2xl border border-dashed border-blue-200 p-8 text-center text-slate-500 flex flex-col items-center justify-center min-h-[260px]">
+                        <span class="text-3xl mb-2">📱</span>
+                        <p class="text-sm font-extrabold text-slate-700">Menunggu Pemindaian QR</p>
+                        <p class="text-xs text-slate-400 mt-1">Data praktikan akan otomatis terisi setelah QR berhasil dipindai.</p>
                     </div>
                 </div>
             </div>
@@ -217,272 +241,394 @@
     </section>
 
     {{-- Rekap Presensi Hasil Scan QR --}}
-    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
-        <div class="p-6 border-b border-blue-100">
-            <h2 class="text-2xl font-extrabold text-slate-900">
-                Rekap Presensi Hasil Scan QR
-            </h2>
+    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden w-full">
+        <div class="p-6 border-b border-blue-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">
+                    Rekap Presensi Hasil Scan QR
+                </h2>
 
-            <p class="text-slate-500 mt-1">
-                Data berikut akan muncul setiap kali asisten menyimpan presensi melalui scan QR.
-            </p>
+                <p class="text-slate-500 text-sm mt-1">
+                    Riwayat 10 presensi praktikan terakhir yang dicatat melalui pemindaian QR Code.
+                </p>
+            </div>
+
+            <span class="text-xs font-bold px-3.5 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 self-start sm:self-auto">
+                Total: {{ ($rekapScanPresensis ?? collect())->count() }} Riwayat
+            </span>
         </div>
 
-        <div class="p-6 overflow-x-auto">
-            <table class="w-full min-w-[1200px] text-sm border border-slate-200">
-                <thead>
-                    <tr class="bg-purple-700 text-white">
-                        <th class="border border-purple-800 p-3 text-center font-bold">Timestamp</th>
-                        <th class="border border-purple-800 p-3 text-center font-bold">Email Address</th>
-                        <th class="border border-purple-800 p-3 text-center font-bold">NIM</th>
-                        <th class="border border-purple-800 p-3 text-center font-bold">Nama</th>
-                        <th class="border border-purple-800 p-3 text-center font-bold">Kelompok</th>
-                        <th class="border border-purple-800 p-3 text-center font-bold">Sesi Praktikum</th>
-                        <th class="border border-purple-800 p-3 text-center font-bold">Pertemuan</th>
-                        <th class="border border-purple-800 p-3 text-center font-bold">Status Kehadiran</th>
-                        <th class="border border-purple-800 p-3 text-center font-bold">Keterangan</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    @forelse (($rekapScanPresensis ?? collect()) as $presensi)
-                        @php
-                            $indexPertemuan = $moduls->pluck('id')->search($presensi->modul_id);
-                            $nomorPertemuan = $indexPertemuan !== false ? $indexPertemuan + 1 : null;
-
-                            $status = strtolower($presensi->status ?? '');
-
-                            $statusClass = match ($status) {
-                                'hadir' => 'bg-green-100 text-green-700',
-                                'sakit', 'izin', 'alpa' => 'bg-red-100 text-red-700',
-                                default => 'bg-slate-100 text-slate-500',
-                            };
-                        @endphp
-
-                        <tr>
-                            <td class="border border-slate-200 p-3 text-center whitespace-nowrap">
-                                {{ $presensi->waktu_absen ? $presensi->waktu_absen->format('n/j/Y H:i:s') : '-' }}
-                            </td>
-
-                            <td class="border border-slate-200 p-3 text-center">
-                                {{ $presensi->email ?? '-' }}
-                            </td>
-
-                            <td class="border border-slate-200 p-3 text-center">
-                                {{ $presensi->nim ?? '-' }}
-                            </td>
-
-                            <td class="border border-slate-200 p-3 text-center">
-                                {{ $presensi->nama ?? '-' }}
-                            </td>
-
-                            <td class="border border-slate-200 p-3 text-center">
-                                {{ $presensi->kelompok ?? '-' }}
-                            </td>
-
-                            <td class="border border-slate-200 p-3 text-center">
-                                {{ $presensi->sesi ?? '-' }}
-                            </td>
-
-                            <td class="border border-slate-200 p-3 text-center">
-                                @if ($nomorPertemuan)
-                                    <div class="font-bold text-slate-800">
-                                        Pertemuan {{ $nomorPertemuan }}
-                                    </div>
-
-                                    <div class="text-xs text-slate-500 mt-1">
-                                        {{ $presensi->modul->nama_modul ?? '-' }}
-                                    </div>
-                                @else
-                                    -
-                                @endif
-                            </td>
-
-                            <td class="border border-slate-200 p-3 text-center">
-                                <span class="px-3 py-1 rounded-full font-bold {{ $statusClass }}">
-                                    {{ $presensi->status ? ucfirst($presensi->status) : 'Kosong' }}
-                                </span>
-                            </td>
-
-                            <td class="border border-slate-200 p-3 text-center text-slate-600">
-                                {{ $presensi->keterangan ?? '-' }}
-                            </td>
+        <div class="p-6">
+            {{-- Desktop View Table --}}
+            <div class="hidden md:block rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700 font-extrabold uppercase tracking-wider">
+                            <th class="p-3.5 text-center w-36">Waktu Scan</th>
+                            <th class="p-3.5 text-left">Praktikan</th>
+                            <th class="p-3.5 text-center w-36">Kelompok / Sesi</th>
+                            <th class="p-3.5 text-center">Modul Praktikum</th>
+                            <th class="p-3.5 text-center w-28">Status</th>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="9" class="border border-slate-200 p-5 text-center text-slate-500">
-                                Belum ada presensi dari hasil scan QR.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </section>
+                    </thead>
 
-    {{-- Data Presensi Manual --}}
-    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
-        <div class="p-6 border-b border-blue-100">
-            <h2 class="text-2xl font-extrabold text-slate-900">
-                Data Presensi Manual
-            </h2>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+                        @forelse (($rekapScanPresensis ?? collect()) as $presensi)
+                            @php
+                                $indexPertemuan = $moduls->pluck('id')->search($presensi->modul_id);
+                                $nomorPertemuan = $indexPertemuan !== false ? $indexPertemuan + 1 : null;
 
-            <p class="text-slate-500 mt-1">
-                Presensi tetap bisa diubah secara manual melalui tabel ini.
-            </p>
-        </div>
+                                $status = strtolower($presensi->status ?? '');
 
-        <div class="p-6 overflow-x-auto">
-            <table class="w-full min-w-[1100px] text-sm">
-                <thead>
-                    <tr class="bg-slate-100">
-                        <th class="p-3 text-center rounded-l-xl">NIM</th>
-                        <th class="p-3 text-center">Nama</th>
-                        <th class="p-3 text-center">Prodi</th>
-                        <th class="p-3 text-center">Kelompok</th>
-                        <th class="p-3 text-center">Sesi</th>
+                                $statusClass = match ($status) {
+                                    'hadir' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                    'sakit' => 'bg-amber-50 text-amber-700 border-amber-200',
+                                    'izin' => 'bg-blue-50 text-blue-700 border-blue-200',
+                                    'alpa' => 'bg-rose-50 text-rose-700 border-rose-200',
+                                    default => 'bg-slate-50 text-slate-600 border-slate-200',
+                                };
+                            @endphp
 
-                        @foreach ($moduls as $modul)
-                            <th class="p-3 text-center whitespace-nowrap">
-                                Pertemuan {{ $loop->iteration }}
-                            </th>
-                        @endforeach
-
-                        <th class="p-3 text-center rounded-r-xl">Nilai Kehadiran</th>
-                    </tr>
-                </thead>
-
-                <tbody class="divide-y divide-slate-100">
-                    @forelse ($praktikans as $praktikan)
-                        <tr>
-                            <td class="p-3 text-center">{{ $praktikan->user->nim ?? '-' }}</td>
-                            <td class="p-3 text-center font-semibold">{{ $praktikan->user->name ?? '-' }}</td>
-                            <td class="p-3 text-center">{{ $praktikan->user->prodi ?? '-' }}</td>
-                            <td class="p-3 text-center">{{ $praktikan->kelompok->nama_kelompok ?? '-' }}</td>
-                            <td class="p-3 text-center">{{ $praktikan->kelompok->sesi ?? '-' }}</td>
-
-                            @foreach ($moduls as $modul)
-                                @php
-                                    $status = data_get($praktikan->nilaiHarian?->kehadiran, (string) $modul->id);
-                                @endphp
-
-                                <td class="p-3 text-center">
-                                    <form method="POST" action="{{ route('asisten.presensi.update') }}">
-                                        @csrf
-
-                                        <input type="hidden" name="praktikan_id" value="{{ $praktikan->id }}">
-                                        <input type="hidden" name="modul_id" value="{{ $modul->id }}">
-
-                                        <select name="status"
-                                                data-current-status="{{ $status ?: 'kosong' }}"
-                                                data-nama-praktikan="{{ $praktikan->user->name ?? 'praktikan ini' }}"
-                                                data-pertemuan="Pertemuan {{ $loop->iteration }}"
-                                                onchange="bukaModalKonfirmasiPresensi(this)"
-                                                class="rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
-                                            <option value="kosong" @selected(!$status)>-</option>
-                                            <option value="hadir" @selected($status === 'hadir')>Hadir</option>
-                                            <option value="sakit" @selected($status === 'sakit')>Sakit</option>
-                                            <option value="izin" @selected($status === 'izin')>Izin</option>
-                                            <option value="alpa" @selected($status === 'alpa')>Alpa</option>
-                                        </select>
-                                    </form>
+                            <tr class="hover:bg-blue-50/30 transition">
+                                <td class="p-3.5 text-center text-slate-600 font-medium">
+                                    {{ $presensi->waktu_absen
+                                        ? $presensi->waktu_absen->format('d/m/Y H:i')
+                                        : '-' }}
                                 </td>
-                            @endforeach
 
-                            <td class="p-3 text-center font-bold">
-                                {{ $praktikan->nilaiHarian->rata_rata_kehadiran ?? '-' }}
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="{{ 6 + $moduls->count() }}" class="p-5 text-center text-slate-500">
-                                Data praktikan belum tersedia.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                                <td class="p-3.5 text-left">
+                                    <div class="font-extrabold text-slate-900">{{ $presensi->nama ?? '-' }}</div>
+                                    <div class="text-[11px] text-slate-500 font-medium">{{ $presensi->nim ?? '-' }}</div>
+                                </td>
 
-            @if (method_exists($praktikans, 'links'))
-                <div class="mt-6">
-                    {{ $praktikans->links() }}
-                </div>
-            @endif
+                                <td class="p-3.5 text-center">
+                                    <span class="inline-block px-2.5 py-1 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 font-bold text-xs">
+                                        {{ $presensi->kelompok ?? '-' }} · {{ $presensi->sesi ?? '-' }}
+                                    </span>
+                                </td>
+
+                                <td class="p-3.5 text-center">
+                                    @if ($nomorPertemuan)
+                                        <span class="font-extrabold text-slate-900">Pertemuan {{ $nomorPertemuan }}</span>
+                                        <span class="text-slate-400 mx-1">·</span>
+                                        <span class="text-slate-600">{{ $presensi->modul->nama_modul ?? '-' }}</span>
+                                    @else
+                                        <span class="text-slate-400">-</span>
+                                    @endif
+                                </td>
+
+                                <td class="p-3.5 text-center">
+                                    <span class="inline-flex px-3 py-1 rounded-full text-xs font-black border {{ $statusClass }}">
+                                        {{ $presensi->status ? ucfirst($presensi->status) : 'Kosong' }}
+                                    </span>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="p-8 text-center text-slate-400">
+                                    <span class="text-2xl block mb-1">📋</span>
+                                    Belum ada riwayat presensi dari hasil scan QR.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Mobile Card View --}}
+            <div class="md:hidden space-y-3">
+                @forelse (($rekapScanPresensis ?? collect()) as $presensi)
+                    @php
+                        $indexPertemuan = $moduls->pluck('id')->search($presensi->modul_id);
+                        $nomorPertemuan = $indexPertemuan !== false ? $indexPertemuan + 1 : null;
+
+                        $status = strtolower($presensi->status ?? '');
+
+                        $statusClass = match ($status) {
+                            'hadir' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                            'sakit' => 'bg-amber-50 text-amber-700 border-amber-200',
+                            'izin' => 'bg-blue-50 text-blue-700 border-blue-200',
+                            'alpa' => 'bg-rose-50 text-rose-700 border-rose-200',
+                            default => 'bg-slate-50 text-slate-600 border-slate-200',
+                        };
+                    @endphp
+
+                    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs space-y-2.5">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <h3 class="font-extrabold text-slate-900 text-sm">
+                                    {{ $presensi->nama ?? '-' }}
+                                </h3>
+                                <p class="text-xs text-slate-500 font-medium">
+                                    {{ $presensi->nim ?? '-' }} · {{ $presensi->kelompok ?? '-' }}
+                                </p>
+                            </div>
+
+                            <span class="shrink-0 px-2.5 py-0.5 rounded-full text-xs font-black border {{ $statusClass }}">
+                                {{ $presensi->status ? ucfirst($presensi->status) : 'Kosong' }}
+                            </span>
+                        </div>
+
+                        <div class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center justify-between">
+                            <span>{{ $nomorPertemuan ? 'P' . $nomorPertemuan . ': ' . ($presensi->modul->nama_modul ?? '-') : '-' }}</span>
+                            <span class="text-slate-400 text-[11px]">{{ $presensi->waktu_absen ? $presensi->waktu_absen->format('d/m H:i') : '' }}</span>
+                        </div>
+                    </div>
+                @empty
+                    <div class="rounded-2xl bg-slate-50 p-6 text-center text-slate-400 text-sm">
+                        <span class="text-2xl block mb-1">📋</span>
+                        Belum ada riwayat presensi scan QR.
+                    </div>
+                @endforelse
+            </div>
         </div>
     </section>
 
-    <!-- Modal Konfirmasi Ubah Presensi -->
-    <div id="modal-konfirmasi-presensi"
-        class="hidden fixed inset-0 z-50 items-center justify-center px-4">
+    {{-- Data Presensi Manual (Form dengan Tombol Simpan) --}}
+    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden w-full">
+        <form method="POST" action="{{ route('asisten.presensi.update') }}">
+            @csrf
 
-        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-            onclick="tutupModalKonfirmasiPresensi(false)">
-        </div>
+            <div class="p-6 border-b border-blue-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">
+                        Data Presensi Manual
+                    </h2>
 
-        <div class="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-blue-100 overflow-hidden">
-            <div class="p-6 border-b border-blue-100">
-                <div class="flex items-start gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center text-2xl">
-                        ?
-                    </div>
+                    <p class="text-slate-500 text-sm mt-1">
+                        Ubah status presensi praktikan lalu tekan tombol <strong>Simpan Perubahan</strong> untuk menyimpan.
+                    </p>
+                </div>
 
-                    <div>
-                        <h3 class="text-xl font-extrabold text-slate-900">
-                            Konfirmasi Perubahan Presensi
-                        </h3>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-xs font-extrabold text-slate-500 mr-1">Petunjuk:</span>
+                    <span class="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-black">H = Hadir</span>
+                    <span class="px-2 py-0.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-black">S = Sakit</span>
+                    <span class="px-2 py-0.5 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 text-[11px] font-black">I = Izin</span>
+                    <span class="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-800 border border-rose-200 text-[11px] font-black">A = Alpa</span>
+                </div>
+            </div>
 
-                        <p class="text-sm text-slate-500 mt-1">
-                            Pastikan data yang dipilih sudah benar sebelum disimpan.
+            <div class="p-6 space-y-6">
+                {{-- Desktop Responsive Table (Fits 100% without horizontal scroll) --}}
+                <div class="hidden lg:block rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 font-extrabold uppercase tracking-wider text-[11px]">
+                                <th class="p-3 text-left">Praktikan</th>
+                                <th class="p-3 text-center w-28">Kelompok</th>
+
+                                @foreach ($moduls as $modul)
+                                    <th class="p-2 text-center w-12" title="{{ $modul->nama_modul }}">
+                                        P{{ $loop->iteration }}
+                                    </th>
+                                @endforeach
+
+                                <th class="p-3 text-center w-20">
+                                    Nilai
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                            @forelse ($praktikans as $praktikan)
+                                <tr class="hover:bg-blue-50/30 transition">
+                                    <td class="p-3 text-left">
+                                        <div class="font-extrabold text-slate-900">{{ $praktikan->user->name ?? '-' }}</div>
+                                        <div class="text-[11px] text-slate-500 font-medium">
+                                            {{ $praktikan->user->nim ?? '-' }} · <span class="text-slate-400">{{ $praktikan->user->prodi ?? '-' }}</span>
+                                        </div>
+                                    </td>
+
+                                    <td class="p-3 text-center">
+                                        <span class="inline-block px-2.5 py-1 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 font-bold text-xs">
+                                            {{ $praktikan->kelompok->nama_kelompok ?? '-' }}
+                                        </span>
+                                    </td>
+
+                                    @foreach ($moduls as $modul)
+                                        @php
+                                            $status = data_get(
+                                                $praktikan->nilaiHarian?->kehadiran,
+                                                (string) $modul->id
+                                            );
+
+                                            $selectColorClass = match ($status) {
+                                                'hadir' => 'bg-emerald-50 border-emerald-300 text-emerald-800 font-black',
+                                                'sakit' => 'bg-amber-50 border-amber-300 text-amber-800 font-black',
+                                                'izin' => 'bg-blue-50 border-blue-300 text-blue-800 font-black',
+                                                'alpa' => 'bg-rose-50 border-rose-300 text-rose-800 font-black',
+                                                default => 'bg-slate-50 border-slate-200 text-slate-400 font-semibold',
+                                            };
+                                        @endphp
+
+                                        <td class="p-2 text-center">
+                                            <select name="presensi[{{ $praktikan->id }}][{{ $modul->id }}]"
+                                                    onchange="updateSelectColor(this)"
+                                                    title="P{{ $loop->iteration }} - {{ $modul->nama_modul }}"
+                                                    class="appearance-none [background-image:none] text-center w-10 h-10 rounded-2xl text-xs font-black transition cursor-pointer hover:scale-105 shadow-2xs focus:ring-2 focus:ring-blue-400 focus:outline-hidden p-0 mx-auto block {{ $selectColorClass }}"
+                                                    style="-webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: none !important; text-align: center; text-align-last: center; padding: 0 !important;">
+                                                <option value="kosong" @selected(!$status)>-</option>
+                                                <option value="hadir" @selected($status === 'hadir')>H</option>
+                                                <option value="sakit" @selected($status === 'sakit')>S</option>
+                                                <option value="izin" @selected($status === 'izin')>I</option>
+                                                <option value="alpa" @selected($status === 'alpa')>A</option>
+                                            </select>
+                                        </td>
+                                    @endforeach
+
+                                    <td class="p-3 text-center">
+                                        <span class="inline-block px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-black text-xs">
+                                            {{ $praktikan->nilaiHarian->rata_rata_kehadiran ?? '-' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="{{ 3 + $moduls->count() }}"
+                                        class="p-8 text-center text-slate-400">
+                                        <span class="text-2xl block mb-1">👥</span>
+                                        Data praktikan belum tersedia.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- Mobile / Tablet Card View (Strictly Vertical Scroll) --}}
+                <div class="lg:hidden space-y-4">
+                    @forelse ($praktikans as $praktikan)
+                        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <h3 class="text-base font-extrabold text-slate-900">
+                                        {{ $praktikan->user->name ?? '-' }}
+                                    </h3>
+                                    <p class="text-xs text-slate-500 font-medium mt-0.5">
+                                        {{ $praktikan->user->nim ?? '-' }} · {{ $praktikan->user->prodi ?? '-' }}
+                                    </p>
+                                    <p class="text-xs text-blue-700 font-bold mt-1">
+                                        {{ $praktikan->kelompok->nama_kelompok ?? '-' }} (Sesi {{ $praktikan->kelompok->sesi ?? '-' }})
+                                    </p>
+                                </div>
+
+                                <div class="text-right shrink-0">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Nilai Kehadiran</p>
+                                    <span class="inline-block px-3 py-1 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-black text-xs mt-1">
+                                        {{ $praktikan->nilaiHarian->rata_rata_kehadiran ?? '-' }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <p class="text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-2.5">
+                                    Presensi Pertemuan
+                                </p>
+
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                    @foreach ($moduls as $modul)
+                                        @php
+                                            $status = data_get(
+                                                $praktikan->nilaiHarian?->kehadiran,
+                                                (string) $modul->id
+                                            );
+
+                                            $selectColorClass = match ($status) {
+                                                'hadir' => 'bg-emerald-50 border-emerald-300 text-emerald-800 font-black',
+                                                'sakit' => 'bg-amber-50 border-amber-300 text-amber-800 font-black',
+                                                'izin' => 'bg-blue-50 border-blue-300 text-blue-800 font-black',
+                                                'alpa' => 'bg-rose-50 border-rose-300 text-rose-800 font-black',
+                                                default => 'bg-slate-50 border-slate-200 text-slate-400 font-semibold',
+                                            };
+                                        @endphp
+
+                                        <div class="rounded-2xl bg-blue-50/50 border border-blue-100 p-2.5 text-center">
+                                            <p class="text-[10px] font-black text-blue-700 uppercase">
+                                                P{{ $loop->iteration }}
+                                            </p>
+                                            <p class="text-[9px] text-slate-500 truncate mt-0.5 mb-2" title="{{ $modul->nama_modul }}">
+                                                {{ $modul->nama_modul }}
+                                            </p>
+
+                                            <select name="presensi[{{ $praktikan->id }}][{{ $modul->id }}]"
+                                                    onchange="updateSelectColor(this)"
+                                                    class="appearance-none [background-image:none] text-center w-full h-9.5 rounded-xl text-xs font-black transition cursor-pointer shadow-2xs focus:ring-2 focus:ring-blue-400 focus:outline-hidden p-0 mx-auto block {{ $selectColorClass }}"
+                                                    style="-webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: none !important; text-align: center; text-align-last: center; padding: 0 !important;">
+                                                <option value="kosong" @selected(!$status)>-</option>
+                                                <option value="hadir" @selected($status === 'hadir')>H</option>
+                                                <option value="sakit" @selected($status === 'sakit')>S</option>
+                                                <option value="izin" @selected($status === 'izin')>I</option>
+                                                <option value="alpa" @selected($status === 'alpa')>A</option>
+                                            </select>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="rounded-2xl bg-slate-50 border border-slate-100 p-6 text-center text-slate-400">
+                            <span class="text-2xl block mb-1">👥</span>
+                            Data praktikan belum tersedia.
+                        </div>
+                    @endforelse
+                </div>
+
+                {{-- Action Bar: Tombol Simpan Perubahan Presensi --}}
+                @if ($praktikans->isNotEmpty())
+                    <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <p class="text-xs text-slate-500">
+                            💡 Pilih status presensi (Hadir, Sakit, Izin, Alpa) untuk praktikan yang diinginkan, lalu klik tombol simpan.
                         </p>
+
+                        <button type="submit"
+                                class="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-blue-700 to-indigo-700 text-white font-extrabold text-sm shadow-md hover:shadow-lg hover:from-blue-800 hover:to-indigo-800 transition flex items-center justify-center gap-2 cursor-pointer">
+                            <span>💾</span>
+                            <span>Simpan Perubahan Presensi</span>
+                        </button>
                     </div>
-                </div>
-            </div>
+                @endif
 
-            <div class="p-6 space-y-4">
-                <div class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
-                    <p class="text-sm text-slate-500">Praktikan</p>
-                    <p id="modal-nama-praktikan" class="font-extrabold text-slate-900 mt-1">-</p>
-                </div>
-
-                <div class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
-                    <p class="text-sm text-slate-500">Pertemuan</p>
-                    <p id="modal-pertemuan" class="font-extrabold text-slate-900 mt-1">-</p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="rounded-2xl bg-red-50 border border-red-100 p-4 text-center">
-                        <p class="text-xs font-bold text-red-600">Status Lama</p>
-                        <p id="modal-status-lama" class="font-extrabold text-red-700 mt-1">-</p>
+                @if (method_exists($praktikans, 'links'))
+                    <div class="mt-4">
+                        {{ $praktikans->links() }}
                     </div>
-
-                    <div class="rounded-2xl bg-green-50 border border-green-100 p-4 text-center">
-                        <p class="text-xs font-bold text-green-600">Status Baru</p>
-                        <p id="modal-status-baru" class="font-extrabold text-green-700 mt-1">-</p>
-                    </div>
-                </div>
+                @endif
             </div>
-
-            <div class="p-6 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row gap-3 justify-end">
-                <button type="button"
-                        onclick="tutupModalKonfirmasiPresensi(false)"
-                        class="px-5 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 font-extrabold hover:bg-slate-100 transition">
-                    Batal
-                </button>
-
-                <button type="button"
-                        onclick="tutupModalKonfirmasiPresensi(true)"
-                        class="px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
-                    Ya, Simpan
-                </button>
-            </div>
-        </div>
-    </div>
+        </form>
+    </section>
 </div>
 
-{{-- Script scanner --}}
+{{-- Script scanner & color updater --}}
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
 <script>
+    // Update select box background color dynamically when changed
+    function updateSelectColor(selectEl) {
+        const val = selectEl.value.toLowerCase();
+        
+        selectEl.classList.remove(
+            'bg-emerald-50', 'border-emerald-300', 'text-emerald-800',
+            'bg-amber-50', 'border-amber-300', 'text-amber-800',
+            'bg-blue-50', 'border-blue-300', 'text-blue-800',
+            'bg-rose-50', 'border-rose-300', 'text-rose-800',
+            'bg-slate-50', 'border-slate-200', 'text-slate-400', 'font-medium', 'font-semibold'
+        );
+
+        if (val === 'hadir') {
+            selectEl.classList.add('bg-emerald-50', 'border-emerald-300', 'text-emerald-800', 'font-black');
+        } else if (val === 'sakit') {
+            selectEl.classList.add('bg-amber-50', 'border-amber-300', 'text-amber-800', 'font-black');
+        } else if (val === 'izin') {
+            selectEl.classList.add('bg-blue-50', 'border-blue-300', 'text-blue-800', 'font-black');
+        } else if (val === 'alpa') {
+            selectEl.classList.add('bg-rose-50', 'border-rose-300', 'text-rose-800', 'font-black');
+        } else {
+            selectEl.classList.add('bg-slate-50', 'border-slate-200', 'text-slate-400', 'font-semibold');
+        }
+    }
+
+    // QR Code Scanner Logic
     const openScannerButton = document.getElementById('btn-open-scanner');
     const stopScannerButton = document.getElementById('btn-stop-scanner');
     const scannerPanel = document.getElementById('scanner-panel');
@@ -505,7 +651,7 @@
     async function startScanner() {
         scannerPanel.classList.remove('hidden');
         scanMessage.textContent = 'Memulai kamera...';
-        scanMessage.className = 'mt-3 text-sm font-semibold text-slate-600';
+        scanMessage.className = 'mt-3 text-xs font-bold text-slate-600';
 
         scanForm.classList.add('hidden');
         scanEmpty.classList.remove('hidden');
@@ -533,7 +679,7 @@
             scanMessage.textContent = 'Arahkan kamera ke QR Code praktikan.';
         } catch (error) {
             scanMessage.textContent = 'Kamera tidak bisa dibuka. Pastikan izin kamera sudah diberikan.';
-            scanMessage.className = 'mt-3 text-sm font-semibold text-red-600';
+            scanMessage.className = 'mt-3 text-xs font-bold text-rose-600';
         }
     }
 
@@ -573,7 +719,7 @@
 
             if (!response.ok || !result.success) {
                 scanMessage.textContent = result.message ?? 'QR Code tidak valid.';
-                scanMessage.className = 'mt-3 text-sm font-semibold text-red-600';
+                scanMessage.className = 'mt-3 text-xs font-bold text-rose-600';
                 hasScanned = false;
                 return;
             }
@@ -590,73 +736,12 @@
             scanEmpty.classList.add('hidden');
 
             scanMessage.textContent = 'Data praktikan berhasil ditemukan. Pilih status kehadiran lalu simpan.';
-            scanMessage.className = 'mt-3 text-sm font-semibold text-green-700';
+            scanMessage.className = 'mt-3 text-xs font-bold text-emerald-700';
         } catch (error) {
             scanMessage.textContent = 'Terjadi kesalahan saat memproses QR Code.';
-            scanMessage.className = 'mt-3 text-sm font-semibold text-red-600';
+            scanMessage.className = 'mt-3 text-xs font-bold text-rose-600';
             hasScanned = false;
         }
-    }
-
-    let pendingPresensiSelect = null;
-
-    function formatStatusPresensi(status) {
-        const daftarStatus = {
-            kosong: 'Kosong',
-            hadir: 'Hadir',
-            sakit: 'Sakit',
-            izin: 'Izin',
-            alpa: 'Alpa'
-        };
-
-        return daftarStatus[status] ?? status;
-    }
-
-    function bukaModalKonfirmasiPresensi(selectElement) {
-        const statusLama = selectElement.dataset.currentStatus || 'kosong';
-        const statusBaru = selectElement.value;
-
-        if (statusLama === statusBaru) {
-            return;
-        }
-
-        pendingPresensiSelect = selectElement;
-
-        document.getElementById('modal-nama-praktikan').textContent =
-            selectElement.dataset.namaPraktikan || 'Praktikan';
-
-        document.getElementById('modal-pertemuan').textContent =
-            selectElement.dataset.pertemuan || '-';
-
-        document.getElementById('modal-status-lama').textContent =
-            formatStatusPresensi(statusLama);
-
-        document.getElementById('modal-status-baru').textContent =
-            formatStatusPresensi(statusBaru);
-
-        const modal = document.getElementById('modal-konfirmasi-presensi');
-
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
-
-    function tutupModalKonfirmasiPresensi(simpan) {
-        const modal = document.getElementById('modal-konfirmasi-presensi');
-
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-
-        if (!pendingPresensiSelect) {
-            return;
-        }
-
-        if (!simpan) {
-            pendingPresensiSelect.value = pendingPresensiSelect.dataset.currentStatus || 'kosong';
-            pendingPresensiSelect = null;
-            return;
-        }
-
-        pendingPresensiSelect.form.submit();
     }
 
     openScannerButton.addEventListener('click', startScanner);
