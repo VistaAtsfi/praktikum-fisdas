@@ -79,8 +79,8 @@ class PraktikanAreaController extends Controller
         $svg = app('qrcode')
             ->format('svg')
             ->size(360)
-            ->margin(5)
-            ->errorCorrection('H')
+            ->margin(4)
+            ->errorCorrection('M')
             ->color(0, 0, 0)
             ->backgroundColor(255, 255, 255)
             ->generate($qrContent);

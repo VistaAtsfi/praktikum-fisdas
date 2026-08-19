@@ -541,7 +541,13 @@ class AsistenController extends Controller
 
         $praktikan = Praktikan::with(['user', 'kelompok'])
             ->where('praktikum_id', $praktikum->id)
-            ->where('qr_code', $qrCode)
+            ->where(function ($query) use ($qrCode) {
+                $query->where('qr_code', $qrCode)
+                    ->orWhere('qr_code', 'LIKE', '%' . $qrCode . '%')
+                    ->orWhereHas('user', function ($uQuery) use ($qrCode) {
+                        $uQuery->where('nim', $qrCode);
+                    });
+            })
             ->first();
 
         if (!$praktikan) {
@@ -583,9 +589,17 @@ class AsistenController extends Controller
 
         abort_if(!$asisten || !$praktikum, 403);
 
+        $qrCode = trim((string) $request->qr_code);
+
         $praktikan = Praktikan::with(['user', 'kelompok'])
             ->where('praktikum_id', $praktikum->id)
-            ->where('qr_code', trim((string) $request->qr_code))
+            ->where(function ($query) use ($qrCode) {
+                $query->where('qr_code', $qrCode)
+                    ->orWhere('qr_code', 'LIKE', '%' . $qrCode . '%')
+                    ->orWhereHas('user', function ($uQuery) use ($qrCode) {
+                        $uQuery->where('nim', $qrCode);
+                    });
+            })
             ->firstOrFail();
 
         $modul = Modul::where('praktikum_id', $praktikum->id)

@@ -40,7 +40,7 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
+            <div class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6" x-data="{ showZoomModal: false }">
                 <div class="flex items-center justify-between mb-5">
                     <div>
                         <h3 class="text-2xl font-extrabold text-slate-900">
@@ -57,21 +57,69 @@
                 </div>
 
                 <div class="flex justify-center">
-                    <div class="bg-white p-5 rounded-3xl border-4 border-slate-100 shadow-sm">
+                    <div class="bg-white p-4 rounded-3xl border-4 border-slate-100 shadow-sm cursor-pointer hover:border-blue-200 transition"
+                         @click="showZoomModal = true"
+                         title="Klik untuk memperbesar QR">
                         <img src="{{ $qrSvg }}"
                             alt="QR Code Presensi Praktikan"
-                            class="w-72 h-72 object-contain">
+                            class="w-64 h-64 sm:w-72 sm:h-72 object-contain"
+                            style="image-rendering: pixelated;">
                     </div>
                 </div>
 
-                <p class="text-xs text-slate-400 text-center mt-4 break-all">
-                    Kode QR: {{ $qrContent }}
+                <p class="text-xs text-slate-400 text-center mt-3 break-all font-mono">
+                    {{ $qrContent }}
                 </p>
 
-                <a href="{{ route('praktikan.qr.download') }}"
-                class="mt-5 w-full inline-flex justify-center px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
-                    Download QR Code
-                </a>
+                <div class="mt-5 grid grid-cols-2 gap-3">
+                    <button type="button"
+                            @click="showZoomModal = true"
+                            class="inline-flex justify-center items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-slate-100 text-slate-700 text-xs font-extrabold hover:bg-slate-200 transition">
+                        <span>🔍</span>
+                        <span>Perbesar QR</span>
+                    </button>
+
+                    <a href="{{ route('praktikan.qr.download') }}"
+                       class="inline-flex justify-center items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-blue-700 text-white text-xs font-extrabold hover:bg-blue-800 transition">
+                        <span>📥</span>
+                        <span>Unduh SVG</span>
+                    </a>
+                </div>
+
+                {{-- Modal Perbesar QR --}}
+                <div x-cloak
+                     x-show="showZoomModal"
+                     x-transition.opacity
+                     class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4"
+                     @keydown.escape.window="showZoomModal = false">
+                    <div @click.outside="showZoomModal = false"
+                         x-transition
+                         class="bg-white rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl border border-slate-100">
+                        <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+                            <h4 class="font-extrabold text-slate-900 text-base">QR Code Presensi</h4>
+                            <button type="button"
+                                    @click="showZoomModal = false"
+                                    class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 font-black text-sm flex items-center justify-center">
+                                ✕
+                            </button>
+                        </div>
+
+                        <div class="bg-white p-3 rounded-2xl border-2 border-slate-200 flex justify-center mb-3">
+                            <img src="{{ $qrSvg }}"
+                                 alt="QR Code Presensi Praktikan"
+                                 class="w-80 h-80 object-contain">
+                        </div>
+
+                        <p class="font-bold text-slate-900 text-sm">{{ $praktikan->user->name }}</p>
+                        <p class="text-xs text-slate-500 font-mono mt-0.5">{{ $praktikan->user->nim }} &bull; {{ $praktikan->kelompok->nama_kelompok ?? 'Tanpa Kelompok' }}</p>
+
+                        <button type="button"
+                                @click="showZoomModal = false"
+                                class="mt-4 w-full py-2.5 rounded-xl bg-slate-100 text-slate-700 font-extrabold text-xs hover:bg-slate-200 transition">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </section>

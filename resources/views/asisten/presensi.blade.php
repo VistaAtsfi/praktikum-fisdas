@@ -125,20 +125,59 @@
                             <span>Kamera Pemindai QR</span>
                         </h3>
 
-                        <button type="button"
-                                id="btn-stop-scanner"
-                                class="px-3.5 py-1.5 rounded-xl bg-red-600 text-white text-xs font-extrabold hover:bg-red-700 transition cursor-pointer">
-                            Tutup Kamera
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button type="button"
+                                    id="btn-switch-camera"
+                                    class="hidden px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-extrabold hover:bg-slate-200 transition cursor-pointer"
+                                    title="Ganti Kamera">
+                                🔄 Ganti Kamera
+                            </button>
+
+                            <button type="button"
+                                    id="btn-stop-scanner"
+                                    class="px-3.5 py-1.5 rounded-xl bg-red-600 text-white text-xs font-extrabold hover:bg-red-700 transition cursor-pointer">
+                                Tutup Kamera
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Camera Selection (if multiple) --}}
+                    <div id="camera-select-container" class="hidden mb-3">
+                        <select id="camera-select" class="w-full text-xs rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 bg-white font-medium">
+                        </select>
                     </div>
 
                     <div id="qr-reader"
-                         class="w-full overflow-hidden rounded-2xl bg-white border border-blue-100 shadow-xs">
+                         class="w-full overflow-hidden rounded-2xl bg-black border border-blue-100 shadow-xs min-h-[260px] flex items-center justify-center">
                     </div>
 
                     <p id="scan-message" class="mt-3 text-xs font-bold text-slate-600">
                         Arahkan kamera ke QR Code praktikan.
                     </p>
+
+                    {{-- Alternative: Upload image or search manually --}}
+                    <div class="mt-4 pt-4 border-t border-blue-100/80 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                            <label for="qr-file-input"
+                                   class="w-full px-3 py-2 rounded-xl bg-white border border-blue-200 hover:bg-blue-50 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs transition">
+                                <span>🖼️</span>
+                                <span>Upload Foto QR</span>
+                            </label>
+                            <input type="file" id="qr-file-input" accept="image/*" class="hidden">
+                        </div>
+
+                        <div class="flex gap-1.5">
+                            <input type="text"
+                                   id="manual-qr-input"
+                                   placeholder="NIM praktikan..."
+                                   class="w-full px-3 py-2 text-xs rounded-xl border-slate-200 bg-white focus:border-blue-500 focus:ring-blue-500">
+                            <button type="button"
+                                    id="btn-manual-search"
+                                    class="px-3 py-2 rounded-xl bg-blue-700 text-white text-xs font-extrabold hover:bg-blue-800 transition shrink-0">
+                                Cari
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- Result Form --}}
@@ -156,9 +195,16 @@
                                 <span>🎯</span>
                                 <span>Data Hasil Scan</span>
                             </h3>
-                            <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
-                                Teridentifikasi
-                            </span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
+                                    Teridentifikasi
+                                </span>
+                                <button type="button"
+                                        id="btn-rescan"
+                                        class="text-xs font-bold text-blue-700 hover:text-blue-800 underline cursor-pointer">
+                                    Scan Ulang
+                                </button>
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-2.5 text-xs">
@@ -215,7 +261,7 @@
                                         required
                                         class="w-full rounded-xl border-slate-200 text-xs focus:border-blue-500 focus:ring-blue-500">
                                     <option value="">Pilih Status</option>
-                                    <option value="hadir">Hadir</option>
+                                    <option value="hadir" selected>Hadir</option>
                                     <option value="sakit">Sakit</option>
                                     <option value="izin">Izin</option>
                                     <option value="alpa">Alpa</option>
@@ -233,7 +279,7 @@
                          class="bg-white rounded-2xl border border-dashed border-blue-200 p-8 text-center text-slate-500 flex flex-col items-center justify-center min-h-[260px]">
                         <span class="text-3xl mb-2">📱</span>
                         <p class="text-sm font-extrabold text-slate-700">Menunggu Pemindaian QR</p>
-                        <p class="text-xs text-slate-400 mt-1">Data praktikan akan otomatis terisi setelah QR berhasil dipindai.</p>
+                        <p class="text-xs text-slate-400 mt-1">Data praktikan akan otomatis terisi setelah QR berhasil dipindai atau dicari.</p>
                     </div>
                 </div>
             </div>
@@ -631,10 +677,18 @@
     // QR Code Scanner Logic
     const openScannerButton = document.getElementById('btn-open-scanner');
     const stopScannerButton = document.getElementById('btn-stop-scanner');
+    const switchCameraButton = document.getElementById('btn-switch-camera');
+    const cameraSelectContainer = document.getElementById('camera-select-container');
+    const cameraSelect = document.getElementById('camera-select');
     const scannerPanel = document.getElementById('scanner-panel');
     const scanMessage = document.getElementById('scan-message');
     const scanForm = document.getElementById('scan-form');
     const scanEmpty = document.getElementById('scan-empty');
+    const rescanButton = document.getElementById('btn-rescan');
+
+    const qrFileInput = document.getElementById('qr-file-input');
+    const manualQrInput = document.getElementById('manual-qr-input');
+    const btnManualSearch = document.getElementById('btn-manual-search');
 
     const scanQrCodeInput = document.getElementById('scan_qr_code');
     const scanTimestamp = document.getElementById('scan_timestamp');
@@ -647,8 +701,50 @@
     let html5QrCode = null;
     let isScanning = false;
     let hasScanned = false;
+    let availableCameras = [];
+    let currentCameraIndex = 0;
 
-    async function startScanner() {
+    function playBeep() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.15);
+        } catch (e) {
+            // Audio context not allowed or unsupported
+        }
+    }
+
+    async function initCameras() {
+        try {
+            availableCameras = await Html5Qrcode.getCameras();
+            if (availableCameras && availableCameras.length > 0) {
+                cameraSelect.innerHTML = '';
+                availableCameras.forEach((cam, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = cam.id;
+                    opt.textContent = cam.label || `Kamera ${idx + 1}`;
+                    cameraSelect.appendChild(opt);
+                });
+
+                if (availableCameras.length > 1) {
+                    cameraSelectContainer.classList.remove('hidden');
+                    switchCameraButton.classList.remove('hidden');
+                }
+            }
+        } catch (err) {
+            console.warn('Could not enumerate cameras:', err);
+        }
+    }
+
+    async function startScanner(preferredCameraId = null) {
         scannerPanel.classList.remove('hidden');
         scanMessage.textContent = 'Memulai kamera...';
         scanMessage.className = 'mt-3 text-xs font-bold text-slate-600';
@@ -662,47 +758,81 @@
             html5QrCode = new Html5Qrcode('qr-reader');
         }
 
+        if (availableCameras.length === 0) {
+            await initCameras();
+        }
+
+        const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const qrboxSize = Math.max(180, Math.floor(minEdge * 0.75));
+            return {
+                width: qrboxSize,
+                height: qrboxSize
+            };
+        };
+
+        const config = {
+            fps: 15,
+            qrbox: qrboxFunction,
+            aspectRatio: 1.0,
+            experimentalFeatures: {
+                useBarCodeDetectorIfSupported: true
+            }
+        };
+
         try {
-            await html5QrCode.start(
-                { facingMode: 'environment' },
-                {
-                    fps: 10,
-                    qrbox: {
-                        width: 250,
-                        height: 250
-                    }
-                },
-                onScanSuccess
-            );
+            if (isScanning) {
+                await html5QrCode.stop();
+                isScanning = false;
+            }
+
+            let cameraConfig;
+            if (preferredCameraId) {
+                cameraConfig = { deviceId: { exact: preferredCameraId } };
+            } else if (availableCameras.length > 0) {
+                // Find back camera if possible
+                const backCam = availableCameras.find(c => (c.label || '').toLowerCase().includes('back') || (c.label || '').toLowerCase().includes('belakang') || (c.label || '').toLowerCase().includes('environment'));
+                cameraConfig = backCam ? { deviceId: { exact: backCam.id } } : { deviceId: { exact: availableCameras[0].id } };
+            } else {
+                cameraConfig = { facingMode: 'environment' };
+            }
+
+            try {
+                await html5QrCode.start(cameraConfig, config, onScanSuccess);
+            } catch (firstErr) {
+                // Fallback to user / default camera if facingMode environment or exact deviceId failed
+                console.warn('First camera start failed, trying generic fallback:', firstErr);
+                await html5QrCode.start({ facingMode: 'user' }, config, onScanSuccess);
+            }
 
             isScanning = true;
             scanMessage.textContent = 'Arahkan kamera ke QR Code praktikan.';
+            scanMessage.className = 'mt-3 text-xs font-bold text-slate-600';
         } catch (error) {
-            scanMessage.textContent = 'Kamera tidak bisa dibuka. Pastikan izin kamera sudah diberikan.';
+            console.error('Scanner error:', error);
+            scanMessage.textContent = 'Kamera tidak bisa dibuka. Pastikan izin kamera sudah diberikan atau gunakan Upload Foto QR / Cari NIM.';
             scanMessage.className = 'mt-3 text-xs font-bold text-rose-600';
         }
     }
 
     async function stopScanner() {
         if (html5QrCode && isScanning) {
-            await html5QrCode.stop();
+            try {
+                await html5QrCode.stop();
+            } catch (e) {
+                console.warn('Error stopping scanner:', e);
+            }
             isScanning = false;
         }
 
         scanMessage.textContent = 'Kamera dihentikan.';
     }
 
-    async function onScanSuccess(decodedText) {
-        if (hasScanned) {
-            return;
-        }
-
-        hasScanned = true;
-        scanMessage.textContent = 'QR terbaca. Mencari data praktikan...';
+    async function handleQrText(decodedText) {
+        scanMessage.textContent = 'Memverifikasi data praktikan: ' + decodedText + '...';
+        scanMessage.className = 'mt-3 text-xs font-bold text-blue-700';
 
         try {
-            await stopScanner();
-
             const response = await fetch("{{ route('asisten.presensi.scan') }}", {
                 method: 'POST',
                 headers: {
@@ -718,11 +848,13 @@
             const result = await response.json();
 
             if (!response.ok || !result.success) {
-                scanMessage.textContent = result.message ?? 'QR Code tidak valid.';
+                scanMessage.textContent = result.message ?? 'QR Code tidak valid atau praktikan tidak ditemukan.';
                 scanMessage.className = 'mt-3 text-xs font-bold text-rose-600';
                 hasScanned = false;
-                return;
+                return false;
             }
+
+            playBeep();
 
             scanQrCodeInput.value = result.data.qr_code;
             scanTimestamp.textContent = result.data.timestamp;
@@ -735,16 +867,116 @@
             scanForm.classList.remove('hidden');
             scanEmpty.classList.add('hidden');
 
-            scanMessage.textContent = 'Data praktikan berhasil ditemukan. Pilih status kehadiran lalu simpan.';
+            scanMessage.textContent = 'Praktikan ' + result.data.nama + ' (' + result.data.nim + ') berhasil ditemukan!';
             scanMessage.className = 'mt-3 text-xs font-bold text-emerald-700';
+
+            return true;
         } catch (error) {
-            scanMessage.textContent = 'Terjadi kesalahan saat memproses QR Code.';
+            console.error('Fetch error:', error);
+            scanMessage.textContent = 'Terjadi kesalahan jaringan saat memverifikasi QR Code.';
             scanMessage.className = 'mt-3 text-xs font-bold text-rose-600';
             hasScanned = false;
+            return false;
         }
     }
 
-    openScannerButton.addEventListener('click', startScanner);
+    async function onScanSuccess(decodedText) {
+        if (hasScanned) {
+            return;
+        }
+
+        hasScanned = true;
+        await stopScanner();
+        await handleQrText(decodedText);
+    }
+
+    // Camera switch dropdown change
+    if (cameraSelect) {
+        cameraSelect.addEventListener('change', function() {
+            if (this.value) {
+                startScanner(this.value);
+            }
+        });
+    }
+
+    // Switch camera button
+    if (switchCameraButton) {
+        switchCameraButton.addEventListener('click', function() {
+            if (availableCameras.length > 1) {
+                currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+                const nextCam = availableCameras[currentCameraIndex];
+                if (cameraSelect) {
+                    cameraSelect.value = nextCam.id;
+                }
+                startScanner(nextCam.id);
+            }
+        });
+    }
+
+    // Upload file QR scanner
+    if (qrFileInput) {
+        qrFileInput.addEventListener('change', async function(e) {
+            if (!e.target.files || e.target.files.length === 0) {
+                return;
+            }
+
+            const file = e.target.files[0];
+            scanMessage.textContent = 'Membaca gambar QR...';
+            scanMessage.className = 'mt-3 text-xs font-bold text-blue-700';
+
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode('qr-reader');
+            }
+
+            try {
+                if (isScanning) {
+                    await stopScanner();
+                }
+
+                const decodedText = await html5QrCode.scanFile(file, true);
+                await handleQrText(decodedText);
+            } catch (err) {
+                console.error('Image QR scan failed:', err);
+                scanMessage.textContent = 'QR Code pada gambar tidak dapat terbaca. Pastikan gambar jelas dan tidak buram.';
+                scanMessage.className = 'mt-3 text-xs font-bold text-rose-600';
+            } finally {
+                qrFileInput.value = '';
+            }
+        });
+    }
+
+    // Manual search by NIM / QR Code
+    if (btnManualSearch && manualQrInput) {
+        const doManualSearch = async () => {
+            const val = manualQrInput.value.trim();
+            if (!val) {
+                scanMessage.textContent = 'Masukkan NIM atau kode QR terlebih dahulu.';
+                scanMessage.className = 'mt-3 text-xs font-bold text-amber-700';
+                return;
+            }
+            if (isScanning) {
+                await stopScanner();
+            }
+            await handleQrText(val);
+        };
+
+        btnManualSearch.addEventListener('click', doManualSearch);
+        manualQrInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                doManualSearch();
+            }
+        });
+    }
+
+    // Re-scan button
+    if (rescanButton) {
+        rescanButton.addEventListener('click', function() {
+            startScanner();
+        });
+    }
+
+    openScannerButton.addEventListener('click', () => startScanner());
     stopScannerButton.addEventListener('click', stopScanner);
 </script>
 @endsection

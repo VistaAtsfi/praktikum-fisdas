@@ -25,7 +25,9 @@ class RoleMiddleware
         }
 
         if ($user->role === 'praktikan' && !$user->profile_completed) {
-            return redirect()->route('profile.complete');
+            if (!$request->routeIs('profile.complete*')) {
+                return redirect()->route('profile.complete');
+            }
         }
 
         return $next($request);
