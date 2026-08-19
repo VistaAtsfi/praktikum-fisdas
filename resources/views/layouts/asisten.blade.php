@@ -14,11 +14,11 @@
     </style>
 </head>
 
-<body class="bg-slate-50 text-slate-800"
+<body class="bg-slate-50 text-slate-800 antialiased overflow-x-hidden"
       x-data="{ sidebarOpen: false, logoutModal: false }"
       @keydown.escape.window="sidebarOpen = false; logoutModal = false">
 
-    <div class="min-h-screen flex">
+    <div class="min-h-screen flex w-full">
 
         <div x-cloak
              x-show="sidebarOpen"
@@ -112,11 +112,11 @@
             </div>
         </aside>
 
-        <div class="flex-1 lg:ml-72 w-full">
+        <div class="flex-1 lg:ml-72 min-w-0 max-w-full">
             <header class="h-20 bg-white/90 backdrop-blur border-b border-blue-100 sticky top-0 z-20">
-                <div class="h-full px-6 flex items-center justify-between">
+                <div class="h-full px-6 flex items-center justify-between gap-3">
                     <div>
-                        <h2 class="text-lg md:text-xl font-extrabold text-slate-900">
+                        <h2 class="text-lg md:text-xl font-extrabold text-slate-900 leading-tight">
                             {{ $title ?? 'Panel Asisten' }}
                         </h2>
                         <p class="text-sm text-slate-500">
@@ -125,6 +125,38 @@
                     </div>
 
                     <div class="flex items-center gap-3">
+                        {{-- Switcher Praktikum --}}
+                        @php
+                            $daftarPraktikums = \App\Models\Praktikum::orderBy('id')->get();
+                            $activePraktikumId = $praktikum->id ?? session('asisten_praktikum_id') ?? $daftarPraktikums->first()?->id;
+                        @endphp
+                        @if($daftarPraktikums->count() > 1)
+                            <form method="POST" action="{{ route('asisten.switch-praktikum') }}" class="flex items-center">
+                                @csrf
+                                <div class="relative flex items-center">
+                                    <label for="asisten-switch-praktikum-select" class="sr-only">Pilih Praktikum</label>
+                                    <div class="absolute left-3 flex items-center pointer-events-none text-blue-700">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                        </svg>
+                                    </div>
+                                    <select id="asisten-switch-praktikum-select"
+                                            name="praktikum_id"
+                                            onchange="this.form.submit()"
+                                            class="pl-9 pr-8 py-2 text-xs md:text-sm font-bold bg-blue-50 hover:bg-blue-100/70 border border-blue-200 text-blue-900 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer shadow-xs transition appearance-none">
+                                        @foreach($daftarPraktikums as $p)
+                                            <option value="{{ $p->id }}" @selected($activePraktikumId == $p->id)>
+                                                {{ $p->nama }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <svg class="w-4 h-4 text-blue-600 absolute right-3 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </form>
+                        @endif
+
                         <button type="button"
                                 @click="sidebarOpen = true"
                                 class="lg:hidden px-4 py-2 rounded-xl bg-blue-700 text-white font-bold hover:bg-blue-800 transition">
@@ -164,32 +196,30 @@
          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs px-4">
         <div @click.outside="logoutModal = false"
              x-transition
-             class="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-red-100 overflow-hidden">
+             class="w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-red-100 overflow-hidden">
             <div class="p-6 text-center">
-                <div class="w-16 h-16 mx-auto rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-3xl mb-4">
-                    🚪
+                <div class="w-12 h-12 mx-auto rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mb-4 border border-red-100 shadow-xs">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
                 </div>
 
-                <h2 class="text-2xl font-extrabold text-slate-900">
-                    Konfirmasi Keluar
-                </h2>
-
-                <p class="text-slate-500 mt-2 text-sm leading-relaxed">
+                <h2 class="text-base font-bold text-slate-800">
                     Apakah Anda yakin ingin keluar dari sistem?
-                </p>
+                </h2>
             </div>
 
             <div class="px-6 pb-6 grid grid-cols-2 gap-3">
                 <button type="button"
                         @click="logoutModal = false"
-                        class="px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 font-extrabold hover:bg-slate-200 transition cursor-pointer">
+                        class="px-4 py-2.5 rounded-2xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition cursor-pointer text-sm">
                     Batal
                 </button>
 
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit"
-                            class="w-full px-5 py-3 rounded-2xl bg-red-600 text-white font-extrabold hover:bg-red-700 transition shadow-sm cursor-pointer">
+                            class="w-full px-4 py-2.5 rounded-2xl bg-red-600 text-white font-bold hover:bg-red-700 transition shadow-xs cursor-pointer text-sm">
                         Ya, Keluar
                     </button>
                 </form>

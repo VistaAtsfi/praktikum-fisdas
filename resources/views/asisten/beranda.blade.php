@@ -183,7 +183,7 @@
                         </div>
 
                         <div class="overflow-x-auto rounded-2xl border border-slate-200 shadow-xs">
-                            <table class="w-full min-w-[850px] text-sm">
+                            <table class="w-full text-sm">
                                 <thead>
                                     <tr class="bg-slate-100 text-slate-700 font-extrabold text-xs uppercase tracking-wider">
                                         <th class="p-3.5 text-center">NIM</th>

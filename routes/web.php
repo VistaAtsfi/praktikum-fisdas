@@ -103,6 +103,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::post('/asisten/penilaian/{praktikan}', [AsistenController::class, 'simpanNilai'])
             ->name('asisten.penilaian.store');
+
+        Route::post('/asisten/switch-praktikum', [AsistenController::class, 'switchPraktikum'])
+            ->name('asisten.switch-praktikum');
     });
 
     /*

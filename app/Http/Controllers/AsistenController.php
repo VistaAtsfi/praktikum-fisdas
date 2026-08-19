@@ -13,6 +13,7 @@ use App\Models\NilaiLaporanResmi;
 use App\Models\NilaiPenulisanLaporan;
 use App\Models\Praktikan;
 use App\Models\Presensi;
+use App\Models\Praktikum;
 use App\Models\JadwalModulPraktikum;
 use App\Models\AsistenPemeriksaLaporan;
 use Illuminate\Http\JsonResponse;
@@ -28,12 +29,65 @@ class AsistenController extends Controller
         abort_unless(Auth::check() && Auth::user()->role === 'asisten', 403);
     }
 
-    private function asisten(): ?Asisten
+    private function asisten(?int $requestedPraktikumId = null): ?Asisten
     {
-        return Asisten::with('user', 'praktikum')
-            ->where('user_id', Auth::id())
-            ->latest()
+        $userId = Auth::id();
+        if (!$userId) {
+            return null;
+        }
+
+        $praktikumId = $requestedPraktikumId
+            ?? request('praktikum_id')
+            ?? session('asisten_praktikum_id');
+
+        if ($praktikumId) {
+            $asisten = Asisten::with('user', 'praktikum')
+                ->where('user_id', $userId)
+                ->where('praktikum_id', $praktikumId)
+                ->first();
+
+            if (!$asisten) {
+                $praktikum = Praktikum::find($praktikumId);
+                if ($praktikum) {
+                    $asisten = Asisten::firstOrCreate([
+                        'user_id' => $userId,
+                        'praktikum_id' => $praktikum->id,
+                    ], [
+                        'status' => 'aktif',
+                    ]);
+                    $asisten->load('user', 'praktikum');
+                }
+            }
+
+            if ($asisten) {
+                session(['asisten_praktikum_id' => $asisten->praktikum_id]);
+                return $asisten;
+            }
+        }
+
+        $asisten = Asisten::with('user', 'praktikum')
+            ->where('user_id', $userId)
+            ->latest('praktikum_id')
             ->first();
+
+        if ($asisten) {
+            session(['asisten_praktikum_id' => $asisten->praktikum_id]);
+        }
+
+        return $asisten;
+    }
+
+    public function switchPraktikum(Request $request): RedirectResponse
+    {
+        $this->pastikanAsisten();
+
+        $request->validate([
+            'praktikum_id' => ['required', 'exists:praktikums,id'],
+        ]);
+
+        session(['asisten_praktikum_id' => (int) $request->praktikum_id]);
+
+        return back()->with('status', 'Berhasil beralih praktikum.');
     }
 
     public function beranda()
@@ -50,16 +104,19 @@ class AsistenController extends Controller
                 ->get()
             : collect();
 
-        $semuaKelompoks = $praktikum
+        $kelompoks = $praktikum
             ? Kelompok::where('praktikum_id', $praktikum->id)
+                ->has('praktikans')
                 ->get()
+                ->sort(function ($a, $b) {
+                    $prodiCmp = strcasecmp((string) $a->prodi, (string) $b->prodi);
+                    if ($prodiCmp !== 0) {
+                        return $prodiCmp;
+                    }
+                    return strnatcasecmp((string) $a->nama_kelompok, (string) $b->nama_kelompok);
+                })
+                ->values()
             : collect();
-
-        $kelompoks = $semuaKelompoks
-            ->filter(fn ($kelompok) => !empty($kelompok->nama_kelompok))
-            ->unique('nama_kelompok')
-            ->sortBy('nama_kelompok', SORT_NATURAL | SORT_FLAG_CASE)
-            ->values();
 
         $moduls = $praktikum
             ? Modul::where('praktikum_id', $praktikum->id)
@@ -146,12 +203,28 @@ class AsistenController extends Controller
         }
 
         $kelompoks = Kelompok::where('praktikum_id', $praktikum->id)
-            ->orderBy('nama_kelompok')
-            ->get();
+            ->has('praktikans')
+            ->get()
+            ->sort(function ($a, $b) {
+                $prodiCmp = strcasecmp((string) $a->prodi, (string) $b->prodi);
+                if ($prodiCmp !== 0) {
+                    return $prodiCmp;
+                }
+                return strnatcasecmp((string) $a->nama_kelompok, (string) $b->nama_kelompok);
+            })
+            ->values();
 
         $moduls = Modul::where('praktikum_id', $praktikum->id)
             ->orderBy('id')
             ->get();
+
+        $prodis = JadwalModulPraktikum::where('praktikum_id', $praktikum->id)
+            ->whereNotNull('prodi')
+            ->where('prodi', '!=', '')
+            ->pluck('prodi')
+            ->unique()
+            ->sort()
+            ->values();
 
         $query = JadwalModulPraktikum::with([
                 'kelompok',
@@ -182,6 +255,10 @@ class AsistenController extends Controller
         // if ($penugasans->isEmpty()) {
         //     $query->whereRaw('1 = 0');
         // }
+
+        if ($request->filled('prodi')) {
+            $query->where('prodi', $request->prodi);
+        }
 
         if ($request->filled('kelompok_id')) {
             $query->where('kelompok_id', $request->kelompok_id);
@@ -230,7 +307,8 @@ class AsistenController extends Controller
             'praktikum',
             'jadwals',
             'kelompoks',
-            'moduls'
+            'moduls',
+            'prodis'
         ));
     }
 
@@ -249,7 +327,16 @@ class AsistenController extends Controller
 
         $semuaKelompoks = $praktikum
             ? Kelompok::where('praktikum_id', $praktikum->id)
+                ->has('praktikans')
                 ->get()
+                ->sort(function ($a, $b) {
+                    $prodiCmp = strcasecmp((string) $a->prodi, (string) $b->prodi);
+                    if ($prodiCmp !== 0) {
+                        return $prodiCmp;
+                    }
+                    return strnatcasecmp((string) $a->nama_kelompok, (string) $b->nama_kelompok);
+                })
+                ->values()
             : collect();
 
         $kelompoks = $semuaKelompoks
@@ -602,12 +689,29 @@ class AsistenController extends Controller
 
         $kelompoks = $praktikum
             ? Kelompok::where('praktikum_id', $praktikum->id)
+                ->has('praktikans')
                 ->get()
-                ->filter(fn ($kelompok) => !empty($kelompok->nama_kelompok))
-                ->unique('nama_kelompok')
-                ->sortBy('nama_kelompok', SORT_NATURAL | SORT_FLAG_CASE)
+                ->sort(function ($a, $b) {
+                    $prodiCmp = strcasecmp((string) $a->prodi, (string) $b->prodi);
+                    if ($prodiCmp !== 0) {
+                        return $prodiCmp;
+                    }
+                    return strnatcasecmp((string) $a->nama_kelompok, (string) $b->nama_kelompok);
+                })
                 ->values()
-            : collect();;
+            : collect();
+
+        $prodis = $praktikum
+            ? Praktikan::where('praktikum_id', $praktikum->id)
+                ->whereHas('user')
+                ->with('user')
+                ->get()
+                ->pluck('user.prodi')
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values()
+            : collect();
 
         if (!$praktikum) {
             $praktikans = collect();
@@ -623,6 +727,7 @@ class AsistenController extends Controller
                 'praktikum',
                 'praktikans',
                 'kelompoks',
+                'prodis',
                 'rekapNilaiHuruf',
                 'chartNilaiLabels',
                 'chartNilaiData',
@@ -642,6 +747,12 @@ class AsistenController extends Controller
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('nim', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('prodi')) {
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('prodi', $request->prodi);
             });
         }
 
@@ -676,7 +787,7 @@ class AsistenController extends Controller
         $rekapNilaiHuruf = collect($chartNilaiLabels)->mapWithKeys(function ($huruf) use ($praktikansUntukChart) {
             $items = $praktikansUntukChart
                 ->filter(function ($praktikan) use ($huruf) {
-                    return strtoupper((string) ($praktikan->nilaiAkhir->nilai_huruf ?? '')) === $huruf;
+                    return strtoupper((string) ($praktikan->nilaiAkhir?->nilai_huruf ?? '')) === $huruf;
                 })
                 ->values();
 
@@ -689,7 +800,7 @@ class AsistenController extends Controller
                             'nama' => $praktikan->user->name ?? '-',
                             'prodi' => $praktikan->user->prodi ?? '-',
                             'kelompok' => $praktikan->kelompok->nama_kelompok ?? '-',
-                            'nilai_angka' => $praktikan->nilaiAkhir->nilai_angka ?? null,
+                            'nilai_angka' => $praktikan->nilaiAkhir?->nilai_angka ?? null,
                         ];
                     })->values(),
                 ],
@@ -721,6 +832,7 @@ class AsistenController extends Controller
             'praktikum',
             'praktikans',
             'kelompoks',
+            'prodis',
             'rekapNilaiHuruf',
             'chartNilaiLabels',
             'chartNilaiData',

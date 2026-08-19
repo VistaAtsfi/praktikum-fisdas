@@ -77,171 +77,143 @@
 
     </section>
 
-
-
-
-
     <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
-
-        <form method="GET">
-
-            <div class="grid lg:grid-cols-4 gap-4">
-
-                <div>
-
-                    <label class="font-semibold text-sm mb-2 block">
-                        Cari
-                    </label>
-
-                    <input
-                        type="text"
-                        name="search"
-                        value="{{ request('search') }}"
-                        placeholder="Kelompok / Modul / Prodi"
-                        class="w-full rounded-xl border-blue-200 focus:border-blue-500 focus:ring-blue-500">
-
-                </div>
-
-                <div>
-
-                    <label class="font-semibold text-sm mb-2 block">
-                        Kelompok
-                    </label>
-
-                    <select
-                        name="kelompok_id"
-                        class="w-full rounded-xl border-blue-200 focus:border-blue-500 focus:ring-blue-500">
-
-                        <option value="">Semua Kelompok</option>
-
-                        @foreach($kelompoks as $kelompok)
-
-                            <option
-                                value="{{ $kelompok->id }}"
-                                @selected(request('kelompok_id')==$kelompok->id)>
-
-                                {{ $kelompok->nama_kelompok }}
-
-                            </option>
-
-                        @endforeach
-
-                    </select>
-
-                </div>
-
-                <div>
-
-                    <label class="font-semibold text-sm mb-2 block">
-                        Modul
-                    </label>
-
-                    <select
-                        name="modul_id"
-                        class="w-full rounded-xl border-blue-200 focus:border-blue-500 focus:ring-blue-500">
-
-                        <option value="">Semua Modul</option>
-
-                        @foreach($moduls as $modul)
-
-                            <option
-                                value="{{ $modul->id }}"
-                                @selected(request('modul_id')==$modul->id)>
-
-                                {{ $modul->nama_modul }}
-
-                            </option>
-
-                        @endforeach
-
-                    </select>
-
-                </div>
-
-                <div>
-
-                    <label class="font-semibold text-sm mb-2 block">
-                        Hari
-                    </label>
-
-                    <select
-                        name="hari"
-                        class="w-full rounded-xl border-blue-200 focus:border-blue-500 focus:ring-blue-500">
-
-                        <option value="">Semua Hari</option>
-
-                        @foreach([
-                            'Senin',
-                            'Selasa',
-                            'Rabu',
-                            'Kamis',
-                            'Jumat',
-                            'Sabtu',
-                            'Minggu'
-                        ] as $hari)
-
-                            <option
-                                value="{{ $hari }}"
-                                @selected(request('hari')==$hari)>
-
-                                {{ $hari }}
-
-                            </option>
-
-                        @endforeach
-
-                    </select>
-
-                </div>
-
+        <form method="GET" action="{{ route('asisten.jadwal') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    Cari
+                </label>
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Kelompok / Modul"
+                    class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm">
             </div>
 
-            <div class="mt-6 flex gap-3">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    Program Studi
+                </label>
+                <select
+                    name="prodi"
+                    class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm">
+                    <option value="">Semua Prodi</option>
+                    @foreach(($prodis ?? collect()) as $pItem)
+                        <option
+                            value="{{ $pItem }}"
+                            @selected(request('prodi') == $pItem)>
+                            {{ $pItem }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
 
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    Kelompok
+                </label>
+                <select
+                    name="kelompok_id"
+                    class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm">
+                    <option value="">Semua Kelompok</option>
+                    @foreach($kelompoks->groupBy('prodi') as $prodiName => $kelompokList)
+                        <optgroup label="{{ $prodiName ?: 'Umum' }}">
+                            @foreach($kelompokList as $kelompok)
+                                <option
+                                    value="{{ $kelompok->id }}"
+                                    @selected(request('kelompok_id') == $kelompok->id)>
+                                    {{ $kelompok->nama_kelompok }} ({{ $kelompok->prodi }})
+                                </option>
+                            @endforeach
+                        </optgroup>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    Modul
+                </label>
+                <select
+                    name="modul_id"
+                    class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm">
+                    <option value="">Semua Modul</option>
+                    @foreach($moduls as $modul)
+                        <option
+                            value="{{ $modul->id }}"
+                            @selected(request('modul_id') == $modul->id)>
+                            {{ $modul->nama_modul }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">
+                    Hari
+                </label>
+                <select
+                    name="hari"
+                    class="w-full rounded-2xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm">
+                    <option value="">Semua Hari</option>
+                    @foreach([
+                        'Senin',
+                        'Selasa',
+                        'Rabu',
+                        'Kamis',
+                        'Jumat',
+                        'Sabtu',
+                        'Minggu'
+                    ] as $hari)
+                        <option
+                            value="{{ $hari }}"
+                            @selected(request('hari') == $hari)>
+                            {{ $hari }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="sm:col-span-2 lg:col-span-5 flex items-center gap-3">
                 <button
-                    class="px-6 py-3 rounded-xl bg-blue-700 text-white font-bold hover:bg-blue-800 transition">
-
+                    type="submit"
+                    class="px-6 py-2.5 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition text-sm shadow-xs">
                     Filter
-
                 </button>
 
                 <a
                     href="{{ route('asisten.jadwal') }}"
-                    class="px-6 py-3 rounded-xl bg-slate-200 font-bold hover:bg-slate-300 transition">
-
+                    class="px-6 py-2.5 rounded-2xl bg-slate-100 text-slate-700 font-extrabold hover:bg-slate-200 transition text-sm">
                     Reset
-
                 </a>
-
             </div>
-
         </form>
-
     </section>
 
+    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-blue-100">
+            <h2 class="text-2xl font-extrabold text-slate-900">
+                Daftar Jadwal Praktikum
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">
+                Jadwal sesi dan alokasi modul praktikum per program studi.
+            </p>
+        </div>
 
+        <div class="p-6 overflow-x-auto">
 
-
-
-
-    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
-
-        <div class="overflow-x-auto">
-
-            <table class="min-w-[1200px] w-full text-sm">
+            <table class="w-full text-sm">
 
                 <thead>
 
-                    <tr class="bg-slate-100">
+                    <tr class="bg-slate-100/90 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200/60">
 
-                        <th class="p-3 rounded-l-xl">Minggu</th>
-                        <th class="p-3">Hari</th>
-                        <th class="p-3">Jam</th>
-                        <th class="p-3">Kelompok</th>
-                        <th class="p-3">Prodi</th>
-                        <th class="p-3">Modul</th>
-                        <th class="p-3">Keterangan</th>
-                        <th class="p-3 rounded-r-xl">Status</th>
+                        <th class="py-3.5 px-3 text-center font-bold rounded-l-xl w-24">Minggu</th>
+                        <th class="py-3.5 px-3 text-left font-bold w-44">Hari & Jam</th>
+                        <th class="py-3.5 px-4 text-left font-bold w-48">Kelompok & Prodi</th>
+                        <th class="py-3.5 px-4 text-left font-bold">Modul Praktikum</th>
+                        <th class="py-3.5 px-3 text-center font-bold rounded-r-xl w-28">Status</th>
 
                     </tr>
 
@@ -251,76 +223,62 @@
 
                     @forelse($jadwals as $jadwal)
 
-                        <tr class="hover:bg-slate-50">
+                        <tr class="hover:bg-blue-50/40 transition">
 
-                            <td class="p-4 text-center font-bold">
+                            <td class="py-3.5 px-3 text-center align-middle">
 
-                                Minggu {{ $jadwal->minggu_ke }}
-
-                            </td>
-
-                            <td class="p-4 text-center">
-
-                                <span class="px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold">
-
-                                    {{ $jadwal->hari }}
-
+                                <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100">
+                                    Minggu {{ $jadwal->minggu_ke }}
                                 </span>
 
                             </td>
 
-                            <td class="p-4 text-center">
+                            <td class="py-3.5 px-3 align-middle">
 
-                                {{ substr($jadwal->jam_mulai,0,5) }}
-                                -
-                                {{ substr($jadwal->jam_selesai,0,5) }}
-
-                            </td>
-
-                            <td class="p-4 text-center">
-
-                                <div class="font-bold">
-
-                                    {{ $jadwal->kelompok->nama_kelompok ?? '-' }}
-
+                                <div class="font-semibold text-slate-800">
+                                    {{ $jadwal->hari }}
                                 </div>
 
-                                <div class="text-xs text-slate-500">
-
-                                    {{ $jadwal->kelompok_label }}
-
+                                <div class="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5 whitespace-nowrap">
+                                    <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>{{ substr($jadwal->jam_mulai,0,5) }} - {{ substr($jadwal->jam_selesai,0,5) }}</span>
                                 </div>
 
                             </td>
 
-                            <td class="p-4 text-center">
+                            <td class="py-3.5 px-4 align-middle">
 
-                                {{ $jadwal->prodi }}
+                                <div class="font-bold text-slate-900">
+                                    {{ $jadwal->kelompok->nama_kelompok ?? ($jadwal->kelompok_label ?: '-') }}
+                                </div>
+
+                                <div class="text-xs text-blue-600 font-medium mt-0.5">
+                                    {{ $jadwal->prodi }}
+                                </div>
 
                             </td>
 
-                            <td class="p-4">
+                            <td class="py-3.5 px-4 align-middle">
 
-                                <div class="font-bold">
-
+                                <div class="font-semibold text-slate-800">
                                     {{ $jadwal->modul->nama_modul ?? '-' }}
-
                                 </div>
 
+                                @if($jadwal->keterangan)
+                                    <div class="text-xs text-slate-500 mt-0.5">
+                                        {{ $jadwal->keterangan }}
+                                    </div>
+                                @endif
+
                             </td>
 
-                            <td class="p-4">
+                            <td class="py-3.5 px-3 text-center align-middle">
 
-                                {{ $jadwal->keterangan ?: '-' }}
-
-                            </td>
-
-                            <td class="p-4 text-center">
-
-                                <span class="inline-flex px-3 py-1 rounded-full bg-green-100 text-green-700 font-bold">
-
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold whitespace-nowrap">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                     Terjadwal
-
                                 </span>
 
                             </td>
@@ -331,9 +289,15 @@
 
                         <tr>
 
-                            <td colspan="8" class="p-8 text-center text-slate-500">
+                            <td colspan="5" class="py-12 px-4 text-center text-slate-500">
 
-                                Belum ada jadwal praktikum.
+                                <div class="flex flex-col items-center justify-center">
+                                    <svg class="w-12 h-12 text-slate-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <p class="font-medium text-slate-600">Belum ada jadwal praktikum yang sesuai.</p>
+                                    <p class="text-xs text-slate-400 mt-1">Coba sesuaikan filter pencarian Anda.</p>
+                                </div>
 
                             </td>
 
