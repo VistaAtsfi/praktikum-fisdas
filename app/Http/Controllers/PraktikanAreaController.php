@@ -151,7 +151,24 @@ class PraktikanAreaController extends Controller
         abort_if($materi->praktikum_id !== $praktikan->praktikum_id, 403);
         abort_if(!$materi->link, 404);
 
-        return redirect()->away($materi->link);
+        $downloadUrl = $this->getDirectDownloadUrl($materi->link);
+
+        return redirect()->away($downloadUrl);
+    }
+
+    private function getDirectDownloadUrl(string $link): string
+    {
+        $link = trim($link);
+
+        if (preg_match('/(?:drive\.google\.com\/file\/d\/|docs\.google\.com\/[^\/]+\/d\/)([a-zA-Z0-9_-]+)/', $link, $matches)) {
+            return 'https://drive.google.com/uc?export=download&id=' . $matches[1];
+        }
+
+        if (preg_match('/drive\.google\.com\/[^\?]*\?[^#]*\bid=([a-zA-Z0-9_-]+)/', $link, $matches)) {
+            return 'https://drive.google.com/uc?export=download&id=' . $matches[1];
+        }
+
+        return $link;
     }
 
     public function jadwal(): View

@@ -7,6 +7,10 @@
 
         <title>{{ config('app.name', 'Praktikum Fisika Dasar') }}</title>
 
+        <!-- Favicon -->
+        <link rel="icon" type="image/svg+xml" href="{{ asset('assets/images/LogoUnmul.svg') }}">
+        <link rel="shortcut icon" href="{{ asset('assets/images/LogoUnmul.svg') }}">
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />

@@ -5,6 +5,10 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Praktikum Fisika Dasar</title>
 
+        <!-- Favicon -->
+        <link rel="icon" type="image/svg+xml" href="{{ asset('assets/images/LogoUnmul.svg') }}">
+        <link rel="shortcut icon" href="{{ asset('assets/images/LogoUnmul.svg') }}">
+
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
 
