@@ -49,6 +49,16 @@
         };
     };
 
+    $dotMetode = function ($method) {
+        return match ($method) {
+            'merge_sort_application' => 'bg-blue-600',
+            'sequential_search_application' => 'bg-emerald-500',
+            'mysql_order_by' => 'bg-rose-500',
+            'mysql_where_like' => 'bg-amber-500',
+            default => 'bg-slate-400',
+        };
+    };
+
     $labelSkenario = function ($scenario) {
         return match ($scenario) {
             'random_ascending' => 'Random Asc',
@@ -292,11 +302,16 @@
 
     <section class="grid grid-cols-1 xl:grid-cols-2 gap-6 max-w-full">
         <div class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6 min-w-0">
-            <h2 class="text-xl font-extrabold text-slate-900">
-                Perbandingan Waktu Sorting
-            </h2>
+            <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+                <h2 class="text-xl font-extrabold text-slate-900">
+                    Perbandingan Waktu Sorting
+                </h2>
+                <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                    Waktu (ms)
+                </span>
+            </div>
 
-            <p class="text-sm text-slate-500 mt-1">
+            <p class="text-sm text-slate-500">
                 Mean waktu eksekusi setelah outlier IQR dibuang.
                 Merge Sort dibandingkan dengan baseline MySQL ORDER BY.
             </p>
@@ -307,11 +322,16 @@
         </div>
 
         <div class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6 min-w-0">
-            <h2 class="text-xl font-extrabold text-slate-900">
-                Perbandingan Waktu Searching
-            </h2>
+            <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+                <h2 class="text-xl font-extrabold text-slate-900">
+                    Perbandingan Waktu Searching
+                </h2>
+                <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-100">
+                    Waktu (ms)
+                </span>
+            </div>
 
-            <p class="text-sm text-slate-500 mt-1">
+            <p class="text-sm text-slate-500">
                 Sequential Search dibandingkan dengan baseline MySQL WHERE/LIKE.
             </p>
 
@@ -321,14 +341,41 @@
         </div>
 
         <div class="xl:col-span-2 bg-white rounded-3xl border border-blue-100 shadow-sm p-6 min-w-0">
-            <h2 class="text-xl font-extrabold text-slate-900">
-                Perbandingan Penggunaan Memori
-            </h2>
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <h2 class="text-xl font-extrabold text-slate-900">
+                            Perbandingan Penggunaan Memori
+                        </h2>
+                        <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
+                            Memori (KB)
+                        </span>
+                    </div>
 
-            <p class="text-sm text-slate-500 mt-1">
-                Grafik memakai kenaikan memori selama proses pengujian berjalan, sehingga perbedaan metode
-                lebih mudah dibandingkan.
-            </p>
+                    <p class="text-sm text-slate-500 mt-1">
+                        Grafik garis pemakaian kenaikan memori (KB). Gunakan filter di samping untuk memfokuskan perbandingan atau beralih ke skala logaritmik agar pola data kecil terlihat jelas.
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="inline-flex rounded-2xl bg-slate-100 p-1 border border-slate-200">
+                        <button type="button" id="btnMemAll" onclick="filterMemoryChart('all')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-white text-blue-700 shadow-sm">
+                            Semua Metode
+                        </button>
+                        <button type="button" id="btnMemSort" onclick="filterMemoryChart('sorting')" class="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+                            Sorting
+                        </button>
+                        <button type="button" id="btnMemSearch" onclick="filterMemoryChart('searching')" class="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+                            Searching
+                        </button>
+                    </div>
+
+                    <button type="button" id="btnToggleLog" onclick="toggleMemoryLogScale()" class="px-3 py-1.5 rounded-2xl text-xs font-extrabold bg-blue-50 text-blue-700 hover:bg-blue-100 transition border border-blue-200 flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+                        <span id="logScaleLabel">Skala Logaritmik: Nonaktif</span>
+                    </button>
+                </div>
+            </div>
 
             <div class="h-96 mt-6 max-w-full">
                 <canvas id="memoryChart"></canvas>
@@ -402,11 +449,14 @@
                                     </td>
 
                                     <td class="px-2 sm:px-3 py-3 font-bold text-slate-800">
-                                        <span class="block truncate" title="{{ $labelMetode($row['method']) }}">
-                                            {{ $labelMetode($row['method']) }}
-                                        </span>
+                                        <div class="flex items-center gap-1.5 min-w-0">
+                                            <span class="w-2.5 h-2.5 rounded-full shrink-0 {{ $dotMetode($row['method']) }}"></span>
+                                            <span class="block truncate" title="{{ $labelMetode($row['method']) }}">
+                                                {{ $labelMetode($row['method']) }}
+                                            </span>
+                                        </div>
 
-                                        <span class="md:hidden block text-[10px] text-slate-400 font-normal mt-1 truncate">
+                                        <span class="md:hidden block text-[10px] text-slate-400 font-normal mt-1 truncate pl-4">
                                             {{ $labelSkenario($row['scenario']) }}
                                         </span>
                                     </td>
@@ -512,11 +562,14 @@
                             </td>
 
                             <td class="px-2 sm:px-3 py-3 text-slate-700 font-bold">
-                                <span class="block truncate" title="{{ $labelMetode($result->method) }}">
-                                    {{ $labelMetode($result->method) }}
-                                </span>
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <span class="w-2.5 h-2.5 rounded-full shrink-0 {{ $dotMetode($result->method) }}"></span>
+                                    <span class="block truncate" title="{{ $labelMetode($result->method) }}">
+                                        {{ $labelMetode($result->method) }}
+                                    </span>
+                                </div>
 
-                                <span class="md:hidden block text-[10px] text-slate-400 font-normal mt-1 truncate">
+                                <span class="md:hidden block text-[10px] text-slate-400 font-normal mt-1 truncate pl-4">
                                     {{ $labelSkenario($result->scenario) }}
                                 </span>
                             </td>
@@ -566,6 +619,109 @@
     const searchingChartData = @json($chartSearchingData);
     const memoryChartData = @json($chartMemoryData);
 
+    const METHOD_CONFIG = {
+        'Sequential Search': {
+            borderColor: '#10b981',       // Emerald Green 500
+            backgroundColor: 'rgba(16, 185, 129, 0.12)',
+            pointBorderColor: '#059669',   // Emerald Green 600
+            pointBackgroundColor: '#ffffff',
+            pointHoverBackgroundColor: '#10b981',
+            pointHoverBorderColor: '#ffffff',
+            pointStyle: 'circle',
+            category: 'searching'
+        },
+        'sequential_search_application': {
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.12)',
+            pointBorderColor: '#059669',
+            pointBackgroundColor: '#ffffff',
+            pointHoverBackgroundColor: '#10b981',
+            pointHoverBorderColor: '#ffffff',
+            pointStyle: 'circle',
+            category: 'searching'
+        },
+        'Merge Sort': {
+            borderColor: '#2563eb',       // Royal Blue 600
+            backgroundColor: 'rgba(37, 99, 235, 0.12)',
+            pointBorderColor: '#1d4ed8',   // Royal Blue 700
+            pointBackgroundColor: '#ffffff',
+            pointHoverBackgroundColor: '#2563eb',
+            pointHoverBorderColor: '#ffffff',
+            pointStyle: 'circle',
+            category: 'sorting'
+        },
+        'merge_sort_application': {
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.12)',
+            pointBorderColor: '#1d4ed8',
+            pointBackgroundColor: '#ffffff',
+            pointHoverBackgroundColor: '#2563eb',
+            pointHoverBorderColor: '#ffffff',
+            pointStyle: 'circle',
+            category: 'sorting'
+        },
+        'MySQL ORDER BY': {
+            borderColor: '#f43f5e',       // Rose 500
+            backgroundColor: 'rgba(244, 63, 94, 0.12)',
+            pointBorderColor: '#e11d48',   // Rose 600
+            pointBackgroundColor: '#ffffff',
+            pointHoverBackgroundColor: '#f43f5e',
+            pointHoverBorderColor: '#ffffff',
+            pointStyle: 'rectRot',
+            category: 'sorting'
+        },
+        'mysql_order_by': {
+            borderColor: '#f43f5e',
+            backgroundColor: 'rgba(244, 63, 94, 0.12)',
+            pointBorderColor: '#e11d48',
+            pointBackgroundColor: '#ffffff',
+            pointHoverBackgroundColor: '#f43f5e',
+            pointHoverBorderColor: '#ffffff',
+            pointStyle: 'rectRot',
+            category: 'sorting'
+        },
+        'MySQL WHERE/LIKE': {
+            borderColor: '#f59e0b',       // Amber 500
+            backgroundColor: 'rgba(245, 158, 11, 0.12)',
+            pointBorderColor: '#d97706',   // Amber 600
+            pointBackgroundColor: '#ffffff',
+            pointHoverBackgroundColor: '#f59e0b',
+            pointHoverBorderColor: '#ffffff',
+            pointStyle: 'rect',
+            category: 'searching'
+        },
+        'mysql_where_like': {
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245, 158, 11, 0.12)',
+            pointBorderColor: '#d97706',
+            pointBackgroundColor: '#ffffff',
+            pointHoverBackgroundColor: '#f59e0b',
+            pointHoverBorderColor: '#ffffff',
+            pointStyle: 'rect',
+            category: 'searching'
+        }
+    };
+
+    function getConfigForDataset(dataset) {
+        const key = dataset.method || dataset.label;
+        if (METHOD_CONFIG[key]) {
+            return METHOD_CONFIG[key];
+        }
+        if (METHOD_CONFIG[dataset.label]) {
+            return METHOD_CONFIG[dataset.label];
+        }
+        return {
+            borderColor: '#64748b',
+            backgroundColor: 'rgba(100, 116, 139, 0.12)',
+            pointBorderColor: '#475569',
+            pointBackgroundColor: '#ffffff',
+            pointHoverBackgroundColor: '#64748b',
+            pointHoverBorderColor: '#ffffff',
+            pointStyle: 'circle',
+            category: 'other'
+        };
+    }
+
     function formatIndonesia(value, fraction = 6) {
         return new Intl.NumberFormat('id-ID', {
             minimumFractionDigits: fraction,
@@ -573,25 +729,41 @@
         }).format(value ?? 0);
     }
 
-    function makeLineChart(canvasId, chartData, labelY, satuan = 'ms') {
+    function createLineDataset(dataset) {
+        const cfg = getConfigForDataset(dataset);
+        return {
+            label: dataset.label,
+            method: dataset.method,
+            category: cfg.category,
+            data: dataset.data,
+            borderColor: cfg.borderColor,
+            backgroundColor: cfg.backgroundColor,
+            pointBorderColor: cfg.pointBorderColor,
+            pointBackgroundColor: cfg.pointBackgroundColor,
+            pointHoverBackgroundColor: cfg.pointHoverBackgroundColor,
+            pointHoverBorderColor: cfg.pointHoverBorderColor,
+            pointRadius: 6,
+            pointHoverRadius: 9,
+            pointBorderWidth: 2.5,
+            pointStyle: cfg.pointStyle,
+            borderWidth: 3,
+            tension: 0.35,
+            fill: false
+        };
+    }
+
+    function makeLineChart(canvasId, chartData, labelY, satuan = 'ms', isLog = false) {
         const canvas = document.getElementById(canvasId);
 
         if (!canvas) {
-            return;
+            return null;
         }
 
-        new Chart(canvas, {
+        return new Chart(canvas, {
             type: 'line',
             data: {
                 labels: chartData.labels,
-                datasets: chartData.datasets.map((dataset) => ({
-                    label: dataset.label,
-                    data: dataset.data,
-                    borderWidth: 3,
-                    tension: 0.35,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }))
+                datasets: chartData.datasets.map(createLineDataset)
             },
             options: {
                 responsive: true,
@@ -604,8 +776,11 @@
                     legend: {
                         position: 'bottom',
                         labels: {
-                            boxWidth: 14,
-                            padding: 18,
+                            boxWidth: 16,
+                            boxHeight: 16,
+                            usePointStyle: true,
+                            pointStyleWidth: 14,
+                            padding: 20,
                             font: {
                                 size: 12,
                                 weight: 'bold'
@@ -613,27 +788,63 @@
                         }
                     },
                     tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                        titleFont: { size: 13, weight: 'bold' },
+                        bodyFont: { size: 12 },
+                        padding: 12,
+                        cornerRadius: 12,
+                        usePointStyle: true,
                         callbacks: {
                             label: function(context) {
                                 const value = context.parsed.y ?? 0;
-
-                                return context.dataset.label + ': ' + formatIndonesia(value, 6) + ' ' + satuan;
+                                const precision = satuan === 'KB' ? 4 : 6;
+                                return ' ' + context.dataset.label + ': ' + formatIndonesia(value, precision) + ' ' + satuan;
                             }
                         }
                     }
                 },
                 scales: {
                     x: {
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.6)',
+                            drawBorder: false
+                        },
                         title: {
                             display: true,
-                            text: 'Ukuran Dataset'
+                            text: 'Ukuran Dataset (Jumlah Data)',
+                            font: {
+                                size: 12,
+                                weight: 'bold'
+                            },
+                            padding: { top: 10 }
                         }
                     },
                     y: {
-                        beginAtZero: true,
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Penerapan Skala Logaritmik (Sumbu Y)
+                        |--------------------------------------------------------------------------
+                        | - Jika isLog = true : Menggunakan type 'logarithmic' (kelipatan perkalian 10:
+                        |   0.1 -> 1 -> 10 -> 100 -> 1.000 -> 10.000 KB). Sangat berguna agar data
+                        |   memori bernilai kecil (Sequential Search ~0.1 KB) tidak tenggelam/menempel
+                        |   di garis dasar oleh data yang sangat besar (MySQL ORDER BY ~3.800 KB).
+                        | - Jika isLog = false: Menggunakan type 'linear' (skala normal penjumlahan tetap).
+                        | - beginAtZero: Harus false pada skala logaritmik karena log(0) tidak terdefinisi secara matematika.
+                        */
+                        type: isLog ? 'logarithmic' : 'linear',
+                        beginAtZero: !isLog,
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.6)',
+                            drawBorder: false
+                        },
                         title: {
                             display: true,
-                            text: labelY
+                            text: labelY + (isLog ? ' (Skala Log)' : ''),
+                            font: {
+                                size: 12,
+                                weight: 'bold'
+                            },
+                            padding: { bottom: 10 }
                         },
                         ticks: {
                             callback: function(value) {
@@ -646,78 +857,93 @@
         });
     }
 
-    function makeBarChart(canvasId, chartData, labelY, satuan = 'KB') {
-        const canvas = document.getElementById(canvasId);
+    const sortingChart = makeLineChart('sortingChart', sortingChartData, 'Waktu Eksekusi (ms)', 'ms');
+    const searchingChart = makeLineChart('searchingChart', searchingChartData, 'Waktu Eksekusi (ms)', 'ms');
+    let memoryChart = makeLineChart('memoryChart', memoryChartData, 'Penggunaan Memori (KB)', 'KB');
 
-        if (!canvas) {
-            return;
+    let currentMemoryFilter = 'all';
+    let isMemoryLogScale = false;
+
+    function filterMemoryChart(type) {
+        currentMemoryFilter = type;
+
+        const btnAll = document.getElementById('btnMemAll');
+        const btnSort = document.getElementById('btnMemSort');
+        const btnSearch = document.getElementById('btnMemSearch');
+
+        const activeClasses = ['bg-white', 'text-blue-700', 'shadow-sm'];
+        const inactiveClasses = ['text-slate-600', 'hover:text-slate-900'];
+
+        [btnAll, btnSort, btnSearch].forEach(btn => {
+            if (btn) {
+                btn.classList.remove(...activeClasses);
+                btn.classList.add(...inactiveClasses);
+            }
+        });
+
+        if (type === 'all' && btnAll) {
+            btnAll.classList.remove(...inactiveClasses);
+            btnAll.classList.add(...activeClasses);
+        } else if (type === 'sorting' && btnSort) {
+            btnSort.classList.remove(...inactiveClasses);
+            btnSort.classList.add(...activeClasses);
+        } else if (type === 'searching' && btnSearch) {
+            btnSearch.classList.remove(...inactiveClasses);
+            btnSearch.classList.add(...activeClasses);
         }
 
-        new Chart(canvas, {
-            type: 'bar',
-            data: {
-                labels: chartData.labels,
-                datasets: chartData.datasets.map((dataset) => ({
-                    label: dataset.label,
-                    data: dataset.data,
-                    borderWidth: 2
-                }))
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false
-                },
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            boxWidth: 14,
-                            padding: 18,
-                            font: {
-                                size: 12,
-                                weight: 'bold'
-                            }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const value = context.parsed.y ?? 0;
+        if (!memoryChart) return;
 
-                                return context.dataset.label + ': ' + formatIndonesia(value, 4) + ' ' + satuan;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Ukuran Dataset'
-                        }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: labelY
-                        },
-                        ticks: {
-                            callback: function(value) {
-                                return new Intl.NumberFormat('id-ID').format(value);
-                            }
-                        }
-                    }
-                }
+        memoryChart.data.datasets.forEach((ds) => {
+            if (type === 'all') {
+                ds.hidden = false;
+            } else if (type === 'sorting') {
+                ds.hidden = ds.category !== 'sorting';
+            } else if (type === 'searching') {
+                ds.hidden = ds.category !== 'searching';
             }
         });
+
+        memoryChart.update();
     }
 
-    makeLineChart('sortingChart', sortingChartData, 'Waktu Eksekusi (ms)', 'ms');
-    makeLineChart('searchingChart', searchingChartData, 'Waktu Eksekusi (ms)', 'ms');
-    makeBarChart('memoryChart', memoryChartData, 'Memori (KB)', 'KB');
+    /*
+    |--------------------------------------------------------------------------
+    | Fungsi Toggle Skala Logaritmik Memori
+    |--------------------------------------------------------------------------
+    | Mengubah mode sumbu Y grafik memori secara dinamis saat tombol diklik.
+    | 1. Membalik status boolean isMemoryLogScale (aktif / nonaktif).
+    | 2. Mengubah indikator teks & styling warna tombol UI.
+    | 3. Me-recreate grafik Chart.js dengan parameter isLog terbaru.
+    | 4. Mengembalikan filter kategori yang sedang aktif (Semua / Sorting / Searching).
+    */
+    function toggleMemoryLogScale() {
+        isMemoryLogScale = !isMemoryLogScale;
+        const btnLabel = document.getElementById('logScaleLabel');
+        const btnToggle = document.getElementById('btnToggleLog');
+
+        if (btnLabel) {
+            btnLabel.innerText = isMemoryLogScale ? 'Skala Logaritmik: Aktif' : 'Skala Logaritmik: Nonaktif';
+        }
+
+        if (btnToggle) {
+            if (isMemoryLogScale) {
+                btnToggle.classList.remove('bg-blue-50', 'text-blue-700', 'border-blue-200');
+                btnToggle.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
+            } else {
+                btnToggle.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
+                btnToggle.classList.add('bg-blue-50', 'text-blue-700', 'border-blue-200');
+            }
+        }
+
+        if (!memoryChart) return;
+
+        // Hancurkan instans grafik lama dan bangun kembali dengan skala baru
+        memoryChart.destroy();
+        memoryChart = makeLineChart('memoryChart', memoryChartData, 'Penggunaan Memori (KB)', 'KB', isMemoryLogScale);
+
+        // Pertahankan filter kategori yang sedang dipilih
+        filterMemoryChart(currentMemoryFilter);
+    }
 </script>
 @endsection

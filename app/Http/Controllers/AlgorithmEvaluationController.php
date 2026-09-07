@@ -399,6 +399,7 @@ class AlgorithmEvaluationController extends Controller
         $datasets = $methods->map(function ($method) use ($rows, $labels) {
             return [
                 'label' => $this->labelMethod($method),
+                'method' => $method,
                 'data' => $labels->map(function ($size) use ($rows, $method) {
                     $row = $rows->firstWhere(fn ($item) => $item['dataset_size'] === $size && $item['method'] === $method);
 
@@ -445,6 +446,7 @@ class AlgorithmEvaluationController extends Controller
         $datasets = $methods->map(function ($method) use ($rows, $labels) {
             return [
                 'label' => $this->labelMethod($method),
+                'method' => $method,
                 'data' => $labels->map(function ($size) use ($rows, $method) {
                     $row = $rows->firstWhere(fn ($item) => $item['dataset_size'] === $size && $item['method'] === $method);
 
