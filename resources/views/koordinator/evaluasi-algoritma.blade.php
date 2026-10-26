@@ -131,7 +131,18 @@
                 @endif
             </div>
 
-            <div class="flex flex-wrap gap-3">
+            <div class="flex flex-wrap items-center gap-3">
+                <button type="button"
+                        id="btnJalankanPengujian"
+                        onclick="bukaModalKonfirmasi()"
+                        class="px-5 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700 transition flex items-center gap-2 cursor-pointer shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Jalankan Pengujian</span>
+                </button>
+
                 <a href="{{ route('koordinator.evaluasi-algoritma.export') }}"
                    class="px-5 py-3 rounded-2xl bg-blue-700 text-white font-extrabold hover:bg-blue-800 transition">
                     Export ZIP CSV
@@ -153,6 +164,36 @@
             </ul>
         </section>
     @endif
+
+    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6 max-w-full">
+        <h2 class="text-2xl font-extrabold text-slate-900">
+            Dataset Sintetis
+        </h2>
+
+        <p class="text-slate-500 mt-2">
+            Data ini berasal dari user sintetis dengan email
+            <span class="font-bold text-slate-700">benchmark.test</span>,
+            bukan data praktikan asli.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
+            @foreach ($datasetRows as $dataset)
+                <div class="rounded-3xl border border-blue-100 bg-blue-50 p-5">
+                    <p class="text-sm font-extrabold text-blue-700 uppercase">
+                        Dataset {{ $dataset['size'] }}
+                    </p>
+
+                    <h3 class="text-3xl font-black text-slate-900 mt-2">
+                        {{ $formatBilangan($dataset['available']) }}
+                    </h3>
+
+                    <p class="text-slate-500 text-sm mt-2">
+                        Data tersedia untuk pengujian.
+                    </p>
+                </div>
+            @endforeach
+        </div>
+    </section>
 
     <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5 max-w-full">
         <div class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6">
@@ -267,36 +308,6 @@
             <p class="text-slate-500 mt-2">
                 Jalankan command benchmark jika masih kosong.
             </p>
-        </div>
-    </section>
-
-    <section class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6 max-w-full">
-        <h2 class="text-2xl font-extrabold text-slate-900">
-            Dataset Sintetis
-        </h2>
-
-        <p class="text-slate-500 mt-2">
-            Data ini berasal dari user sintetis dengan email
-            <span class="font-bold text-slate-700">benchmark.test</span>,
-            bukan data praktikan asli.
-        </p>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
-            @foreach ($datasetRows as $dataset)
-                <div class="rounded-3xl border border-blue-100 bg-blue-50 p-5">
-                    <p class="text-sm font-extrabold text-blue-700 uppercase">
-                        Dataset {{ $dataset['size'] }}
-                    </p>
-
-                    <h3 class="text-3xl font-black text-slate-900 mt-2">
-                        {{ $formatBilangan($dataset['available']) }}
-                    </h3>
-
-                    <p class="text-slate-500 text-sm mt-2">
-                        Data tersedia untuk pengujian.
-                    </p>
-                </div>
-            @endforeach
         </div>
     </section>
 
@@ -611,6 +622,97 @@
             </table>
         </div>
     </section>
+
+    {{-- Modal Konfirmasi Jalankan Pengujian --}}
+    <div id="modalKonfirmasiPengujian"
+         onclick="if(event.target === this) tutupModalKonfirmasi()"
+         class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs px-4">
+        <div class="w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-blue-100 p-6 sm:p-8">
+            <div class="flex items-start gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-extrabold text-slate-900">
+                        Jalankan Pengujian Algoritma?
+                    </h3>
+                    <p class="text-slate-500 mt-2 text-sm leading-relaxed">
+                        Sistem akan menjalankan pengujian komparasi <strong>Merge Sort</strong> vs <strong>MySQL ORDER BY</strong> dan <strong>Sequential Search</strong> vs <strong>MySQL WHERE/LIKE</strong>.
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 text-xs text-slate-600 space-y-1.5">
+                <div class="flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    <span><strong>Ukuran Dataset:</strong> 100, 500, 1.000, dan 5.000 data</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    <span><strong>Skenario:</strong> Seluruh skenario pengurutan & pencarian dijalankan otomatis</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    <span><strong>Pengulangan:</strong> 50 run utama + 10 warm-up (eliminasi outlier IQR otomatis)</span>
+                </div>
+            </div>
+
+            <p class="text-xs text-amber-600 mt-3 flex items-center gap-1.5 font-medium">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Proses ini membutuhkan waktu beberapa menit. Harap jangan menutup halaman saat berjalan.</span>
+            </p>
+
+            <div class="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
+                <button type="button"
+                        onclick="tutupModalKonfirmasi()"
+                        class="px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 font-extrabold hover:bg-slate-200 transition cursor-pointer">
+                    Batal
+                </button>
+
+                <button type="button"
+                        id="btnEksekusiPengujian"
+                        onclick="eksekusiPengujian()"
+                        class="px-5 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700 transition cursor-pointer shadow-sm">
+                    Ya, Jalankan Sekarang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal Loading / Sedang Memproses --}}
+    <div id="modalLoadingPengujian"
+         class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-xs px-4">
+        <div class="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-blue-100 p-8 text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 mb-5">
+                <svg class="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+
+            <h3 class="text-2xl font-extrabold text-slate-900">
+                Pengujian Sedang Berjalan...
+            </h3>
+
+            <p class="text-slate-500 mt-2 text-sm leading-relaxed">
+                Sedang memproses seluruh skenario pada dataset 100, 500, 1.000, dan 5.000 data serta menghitung outlier IQR.
+            </p>
+
+            <div class="mt-5 py-3 px-4 rounded-2xl bg-slate-50 border border-slate-100 inline-flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-500">Waktu Berjalan:</span>
+                <span class="font-mono font-bold text-slate-800 text-sm" id="benchmarkTimer">00:00</span>
+            </div>
+
+            <p class="text-xs text-slate-400 mt-4">
+                Mohon tunggu dan jangan menutup atau merefresh tab peramban ini.
+            </p>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -945,5 +1047,93 @@
         // Pertahankan filter kategori yang sedang dipilih
         filterMemoryChart(currentMemoryFilter);
     }
+
+    let benchmarkTimerInterval = null;
+
+    function bukaModalKonfirmasi() {
+        const modal = document.getElementById('modalKonfirmasiPengujian');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    }
+
+    function tutupModalKonfirmasi() {
+        const modal = document.getElementById('modalKonfirmasiPengujian');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    function eksekusiPengujian() {
+        tutupModalKonfirmasi();
+
+        const loadingModal = document.getElementById('modalLoadingPengujian');
+        if (loadingModal) {
+            loadingModal.classList.remove('hidden');
+            loadingModal.classList.add('flex');
+        }
+
+        const timerEl = document.getElementById('benchmarkTimer');
+        let elapsed = 0;
+        if (timerEl) {
+            timerEl.textContent = '00:00';
+            benchmarkTimerInterval = setInterval(() => {
+                elapsed++;
+                const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                const secs = String(elapsed % 60).padStart(2, '0');
+                timerEl.textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        const btnTrigger = document.getElementById('btnJalankanPengujian');
+        if (btnTrigger) {
+            btnTrigger.disabled = true;
+            btnTrigger.classList.add('opacity-60', 'cursor-not-allowed');
+        }
+
+        fetch("{{ route('koordinator.evaluasi-algoritma.run') }}", {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}),
+        })
+        .then(async (response) => {
+            const data = await response.json().catch(() => null);
+            if (!response.ok) {
+                throw new Error((data && data.message) ? data.message : ('Terjadi kesalahan pada server (Status ' + response.status + ')'));
+            }
+            return data;
+        })
+        .then((data) => {
+            if (benchmarkTimerInterval) clearInterval(benchmarkTimerInterval);
+            window.location.reload();
+        })
+        .catch((error) => {
+            if (benchmarkTimerInterval) clearInterval(benchmarkTimerInterval);
+            if (loadingModal) {
+                loadingModal.classList.add('hidden');
+                loadingModal.classList.remove('flex');
+            }
+            if (btnTrigger) {
+                btnTrigger.disabled = false;
+                btnTrigger.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
+            alert('Pengujian gagal: ' + error.message);
+        });
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const loadingModal = document.getElementById('modalLoadingPengujian');
+            if (loadingModal && loadingModal.classList.contains('hidden')) {
+                tutupModalKonfirmasi();
+            }
+        }
+    });
 </script>
 @endsection

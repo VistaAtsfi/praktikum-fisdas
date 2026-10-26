@@ -6,6 +6,7 @@ use App\Models\PerformanceLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use ZipArchive;
@@ -86,6 +87,56 @@ class AlgorithmEvaluationController extends Controller
             'invalidCleanCount',
             'totalBatch'
         ));
+    }
+
+    public function runBenchmark(Request $request)
+    {
+        $this->pastikanKoordinator();
+
+        ini_set('max_execution_time', '0');
+        set_time_limit(0);
+        ini_set('memory_limit', '512M');
+
+        try {
+            Artisan::call('benchmark:algoritma', [
+                '--sizes' => '100,500,1000,5000',
+                '--runs' => 50,
+                '--warmup' => 10,
+                '--only' => 'all',
+                '--fresh' => true,
+            ]);
+
+            $latestBatch = PerformanceLog::query()
+                ->latest('timestamp')
+                ->value('batch_code');
+
+            $message = 'Pengujian algoritma berhasil dijalankan!' . ($latestBatch ? ' (Batch: ' . $latestBatch . ')' : '');
+
+            session()->flash('status', $message);
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'batch' => $latestBatch,
+                    'message' => $message,
+                ]);
+            }
+
+            return redirect()
+                ->route('koordinator.evaluasi-algoritma')
+                ->with('status', $message);
+        } catch (\Throwable $e) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan saat menjalankan pengujian: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            return back()->withErrors([
+                'benchmark' => 'Terjadi kesalahan saat menjalankan pengujian: ' . $e->getMessage(),
+            ]);
+        }
     }
 
     public function exportZip(Request $request)

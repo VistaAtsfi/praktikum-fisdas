@@ -200,6 +200,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/koordinator/evaluasi-algoritma', [AlgorithmEvaluationController::class, 'index'])
                 ->name('koordinator.evaluasi-algoritma');
 
+            Route::post('/koordinator/evaluasi-algoritma/run', [AlgorithmEvaluationController::class, 'runBenchmark'])
+                ->name('koordinator.evaluasi-algoritma.run');
+
             Route::get('/koordinator/evaluasi-algoritma/export', [AlgorithmEvaluationController::class, 'exportZip'])
                 ->name('koordinator.evaluasi-algoritma.export');
 
