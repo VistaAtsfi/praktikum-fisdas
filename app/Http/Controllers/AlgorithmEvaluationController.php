@@ -54,6 +54,8 @@ class AlgorithmEvaluationController extends Controller
         $chartSorting = $this->buatChartRows($summaryRows, 'sorting');
         $chartSearching = $this->buatChartRows($summaryRows, 'searching');
         $chartMemory = $this->buatChartMemoryRows($summaryRows);
+        $chartMemorySorting = $this->buatChartMemoryRowsByType($summaryRows, 'sorting');
+        $chartMemorySearching = $this->buatChartMemoryRowsByType($summaryRows, 'searching');
 
         $latestResults = PerformanceLog::query()
             ->where('is_warmup', false)
@@ -78,6 +80,8 @@ class AlgorithmEvaluationController extends Controller
             'chartSorting',
             'chartSearching',
             'chartMemory',
+            'chartMemorySorting',
+            'chartMemorySearching',
             'latestResults',
             'totalDatasetSintetis',
             'rawRunCount',
@@ -455,6 +459,52 @@ class AlgorithmEvaluationController extends Controller
                     $row = $rows->firstWhere(fn ($item) => $item['dataset_size'] === $size && $item['method'] === $method);
 
                     return $row ? (float) $row['mean_time_ms'] : null;
+                })->values(),
+            ];
+        })->values();
+
+        return [
+            'labels' => $labels,
+            'datasets' => $datasets,
+        ];
+    }
+
+    private function buatChartMemoryRowsByType(array $summaryRows, string $testType): array
+    {
+        $sortingMethods = ['merge_sort_application', 'mysql_order_by'];
+        $searchingMethods = ['sequential_search_application', 'mysql_where_like'];
+
+        $allowedMethods = $testType === 'sorting' ? $sortingMethods : $searchingMethods;
+
+        $rows = collect($summaryRows)
+            ->where('clean_runs', '>', 0)
+            ->filter(fn ($row) => in_array($row['method'], $allowedMethods, true))
+            ->groupBy(fn ($row) => $row['dataset_size'] . '|' . $row['method'])
+            ->map(function ($items) {
+                $first = $items->first();
+
+                return [
+                    'dataset_size' => $first['dataset_size'],
+                    'method' => $first['method'],
+                    'mean_memory_kb' => $items->avg('mean_memory_kb'),
+                ];
+            })
+            ->values();
+
+        $labels = $rows->pluck('dataset_size')->unique()->sort()->values();
+
+        $methods = collect($allowedMethods)
+            ->filter(fn ($method) => $rows->contains('method', $method))
+            ->values();
+
+        $datasets = $methods->map(function ($method) use ($rows, $labels) {
+            return [
+                'label' => $this->labelMethod($method),
+                'method' => $method,
+                'data' => $labels->map(function ($size) use ($rows, $method) {
+                    $row = $rows->firstWhere(fn ($item) => $item['dataset_size'] === $size && $item['method'] === $method);
+
+                    return $row ? (float) $row['mean_memory_kb'] : null;
                 })->values(),
             ];
         })->values();

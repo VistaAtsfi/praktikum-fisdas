@@ -91,7 +91,12 @@
         'datasets' => [],
     ];
 
-    $chartMemoryData = $chartMemory ?? [
+    $chartMemorySortingData = $chartMemorySorting ?? [
+        'labels' => [],
+        'datasets' => [],
+    ];
+
+    $chartMemorySearchingData = $chartMemorySearching ?? [
         'labels' => [],
         'datasets' => [],
     ];
@@ -351,45 +356,41 @@
             </div>
         </div>
 
-        <div class="xl:col-span-2 bg-white rounded-3xl border border-blue-100 shadow-sm p-6 min-w-0">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <div class="flex items-center gap-2.5 flex-wrap">
-                        <h2 class="text-xl font-extrabold text-slate-900">
-                            Perbandingan Penggunaan Memori
-                        </h2>
-                        <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
-                            Memori (KB)
-                        </span>
-                    </div>
-
-                    <p class="text-sm text-slate-500 mt-1">
-                        Grafik garis pemakaian kenaikan memori (KB). Gunakan filter di samping untuk memfokuskan perbandingan atau beralih ke skala logaritmik agar pola data kecil terlihat jelas.
-                    </p>
-                </div>
-
-                <div class="flex flex-wrap items-center gap-2">
-                    <div class="inline-flex rounded-2xl bg-slate-100 p-1 border border-slate-200">
-                        <button type="button" id="btnMemAll" onclick="filterMemoryChart('all')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-white text-blue-700 shadow-sm">
-                            Semua Metode
-                        </button>
-                        <button type="button" id="btnMemSort" onclick="filterMemoryChart('sorting')" class="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 transition">
-                            Sorting
-                        </button>
-                        <button type="button" id="btnMemSearch" onclick="filterMemoryChart('searching')" class="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 transition">
-                            Searching
-                        </button>
-                    </div>
-
-                    <button type="button" id="btnToggleLog" onclick="toggleMemoryLogScale()" class="px-3 py-1.5 rounded-2xl text-xs font-extrabold bg-blue-50 text-blue-700 hover:bg-blue-100 transition border border-blue-200 flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
-                        <span id="logScaleLabel">Skala Logaritmik: Nonaktif</span>
-                    </button>
-                </div>
+        <div class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6 min-w-0">
+            <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+                <h2 class="text-xl font-extrabold text-slate-900">
+                    Penggunaan Memori Sorting
+                </h2>
+                <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
+                    Memori (KB)
+                </span>
             </div>
 
-            <div class="h-96 mt-6 max-w-full">
-                <canvas id="memoryChart"></canvas>
+            <p class="text-sm text-slate-500">
+                Mean penggunaan memori Merge Sort dibandingkan dengan baseline MySQL ORDER BY.
+            </p>
+
+            <div class="h-80 mt-6 max-w-full">
+                <canvas id="memorySortingChart"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl border border-blue-100 shadow-sm p-6 min-w-0">
+            <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+                <h2 class="text-xl font-extrabold text-slate-900">
+                    Penggunaan Memori Searching
+                </h2>
+                <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
+                    Memori (KB)
+                </span>
+            </div>
+
+            <p class="text-sm text-slate-500">
+                Mean penggunaan memori Sequential Search dibandingkan dengan baseline MySQL WHERE/LIKE.
+            </p>
+
+            <div class="h-80 mt-6 max-w-full">
+                <canvas id="memorySearchingChart"></canvas>
             </div>
         </div>
     </section>
@@ -719,7 +720,8 @@
 <script>
     const sortingChartData = @json($chartSortingData);
     const searchingChartData = @json($chartSearchingData);
-    const memoryChartData = @json($chartMemoryData);
+    const memorySortingChartData = @json($chartMemorySortingData);
+    const memorySearchingChartData = @json($chartMemorySearchingData);
 
     const METHOD_CONFIG = {
         'Sequential Search': {
@@ -961,92 +963,8 @@
 
     const sortingChart = makeLineChart('sortingChart', sortingChartData, 'Waktu Eksekusi (ms)', 'ms');
     const searchingChart = makeLineChart('searchingChart', searchingChartData, 'Waktu Eksekusi (ms)', 'ms');
-    let memoryChart = makeLineChart('memoryChart', memoryChartData, 'Penggunaan Memori (KB)', 'KB');
-
-    let currentMemoryFilter = 'all';
-    let isMemoryLogScale = false;
-
-    function filterMemoryChart(type) {
-        currentMemoryFilter = type;
-
-        const btnAll = document.getElementById('btnMemAll');
-        const btnSort = document.getElementById('btnMemSort');
-        const btnSearch = document.getElementById('btnMemSearch');
-
-        const activeClasses = ['bg-white', 'text-blue-700', 'shadow-sm'];
-        const inactiveClasses = ['text-slate-600', 'hover:text-slate-900'];
-
-        [btnAll, btnSort, btnSearch].forEach(btn => {
-            if (btn) {
-                btn.classList.remove(...activeClasses);
-                btn.classList.add(...inactiveClasses);
-            }
-        });
-
-        if (type === 'all' && btnAll) {
-            btnAll.classList.remove(...inactiveClasses);
-            btnAll.classList.add(...activeClasses);
-        } else if (type === 'sorting' && btnSort) {
-            btnSort.classList.remove(...inactiveClasses);
-            btnSort.classList.add(...activeClasses);
-        } else if (type === 'searching' && btnSearch) {
-            btnSearch.classList.remove(...inactiveClasses);
-            btnSearch.classList.add(...activeClasses);
-        }
-
-        if (!memoryChart) return;
-
-        memoryChart.data.datasets.forEach((ds) => {
-            if (type === 'all') {
-                ds.hidden = false;
-            } else if (type === 'sorting') {
-                ds.hidden = ds.category !== 'sorting';
-            } else if (type === 'searching') {
-                ds.hidden = ds.category !== 'searching';
-            }
-        });
-
-        memoryChart.update();
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Fungsi Toggle Skala Logaritmik Memori
-    |--------------------------------------------------------------------------
-    | Mengubah mode sumbu Y grafik memori secara dinamis saat tombol diklik.
-    | 1. Membalik status boolean isMemoryLogScale (aktif / nonaktif).
-    | 2. Mengubah indikator teks & styling warna tombol UI.
-    | 3. Me-recreate grafik Chart.js dengan parameter isLog terbaru.
-    | 4. Mengembalikan filter kategori yang sedang aktif (Semua / Sorting / Searching).
-    */
-    function toggleMemoryLogScale() {
-        isMemoryLogScale = !isMemoryLogScale;
-        const btnLabel = document.getElementById('logScaleLabel');
-        const btnToggle = document.getElementById('btnToggleLog');
-
-        if (btnLabel) {
-            btnLabel.innerText = isMemoryLogScale ? 'Skala Logaritmik: Aktif' : 'Skala Logaritmik: Nonaktif';
-        }
-
-        if (btnToggle) {
-            if (isMemoryLogScale) {
-                btnToggle.classList.remove('bg-blue-50', 'text-blue-700', 'border-blue-200');
-                btnToggle.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
-            } else {
-                btnToggle.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
-                btnToggle.classList.add('bg-blue-50', 'text-blue-700', 'border-blue-200');
-            }
-        }
-
-        if (!memoryChart) return;
-
-        // Hancurkan instans grafik lama dan bangun kembali dengan skala baru
-        memoryChart.destroy();
-        memoryChart = makeLineChart('memoryChart', memoryChartData, 'Penggunaan Memori (KB)', 'KB', isMemoryLogScale);
-
-        // Pertahankan filter kategori yang sedang dipilih
-        filterMemoryChart(currentMemoryFilter);
-    }
+    const memorySortingChart = makeLineChart('memorySortingChart', memorySortingChartData, 'Penggunaan Memori (KB)', 'KB');
+    const memorySearchingChart = makeLineChart('memorySearchingChart', memorySearchingChartData, 'Penggunaan Memori (KB)', 'KB');
 
     let benchmarkTimerInterval = null;
 
